@@ -13,44 +13,65 @@ knitr::opts_chunk$set(
 )
 ```
 
-# LAVA
+# LAVA <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/isadoo/LAVA/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/isadoo/LAVA/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/isadoo/LAVA/branch/master/graph/badge.svg)](https://app.codecov.io/gh/isadoo/LAVA?branch=master)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/LAVA)](https://CRAN.R-project.org/package=LAVA)
+[![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/grand-total/LAVA)](https://r-pkg.org/pkg/LAVA)
+[![GitHub last commit](https://img.shields.io/github/last-commit/isadoo/LAVA.svg)](https://github.com/isadoo/LAVA/commits/master)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.placeholder.svg)](https://doi.org/10.5281/zenodo.placeholder)
+[![Citation Status](https://img.shields.io/badge/cited%20by-0%20publications-4D76C9)](https://scholar.google.com/scholar?q=LAVA+package+R)
+[![GitHub release date](https://img.shields.io/github/release-date/isadoo/LAVA.svg)](https://github.com/isadoo/LAVA/releases)
+[![GitHub release](https://img.shields.io/github/release/isadoo/LAVA.svg)](https://github.com/isadoo/LAVA/releases)
+[![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)](https://github.com/isadoo/LAVA/blob/master/DESCRIPTION)
+[![Project Status: WIP](https://www.repostatus.org/badges/latest/WIP.svg)](https://www.repostatus.org/#WIP)
+[![r-universe](https://isadoo.r-universe.dev/badges/LAVA)](https://isadoo.r-universe.dev/LAVA)
+[![minimal R version](https://img.shields.io/badge/R%3E%3D-4.1.0-6666ff.svg)](https://cran.r-project.org/)
 <!-- badges: end -->
 
-The goal of LAVA is to ...
+## Overview
+
+LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze genomic data through the lens of ancestral variance ratios. The package provides tools for statistical analysis and visualization of evolutionary patterns.
 
 ## Installation
 
 You can install the development version of LAVA from [GitHub](https://github.com/) with:
 
-``` r
+```r
 # install.packages("pak")
 pak::pak("isadoo/LAVA")
 ```
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+This is a basic example which shows you how to use LAVA:
 
 ```{r example}
 library(LAVA)
-## basic example code
+# Basic example code will be added once package functionality is implemented
+hello()
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+## Features
 
-```{r cars}
-summary(cars)
-```
+The LAVA package provides:
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+- Analysis tools for variance comparison
+- Utility functions for data preprocessing
+- Visualization tools for results interpretation
 
-You can also embed plots, for example:
+## Documentation
 
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
+For more detailed information, check out the [LAVA website](https://isadoo.github.io/LAVA/).
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+## Contributing
+
+Contributions to LAVA are welcome! Please see our [contributing guide](.github/CONTRIBUTING.md) to get started.
+
+## License
+
+LAVA is licensed under the GPL-3 license. See the [LICENSE](LICENSE.md) file for more details.

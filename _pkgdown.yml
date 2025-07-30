@@ -1,0 +1,52 @@
+url: https://isadoo.github.io/LAVA/
+template:
+  bootstrap: 5
+  bootswatch: cosmo
+  bslib:
+    primary: "#0054AD"
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
+
+home:
+  title: Log ratio of Ancestral Variances
+  description: >
+    An R package for analyzing the log ratio of ancestral variances to identify
+    evolutionary patterns in genomic data.
+  sidebar:
+    structure: [links, license, community, citation, authors, dev]
+
+navbar:
+  structure:
+    left: [intro, reference, articles, tutorials, news]
+    right: [search, github]
+  components:
+    intro:
+      text: Get started
+      href: articles/introduction-to-lava.html
+    articles:
+      text: Articles
+      menu:
+      - text: "Development Guide"
+        href: articles/development-guide.html
+
+reference:
+- title: "Package Information"
+  desc: >
+    Documentation for the package itself
+  contents:
+  - LAVA-package
+- title: "Core Functions"
+  desc: "Main functions for variance analysis"
+  contents:
+  - calculate_lava
+- title: "Utility Functions"
+  desc: "Helper functions"
+  contents:
+  - hello
+
+footer:
+  structure:
+    left: developed_by
+    right: [built_with, legal]
+  components:
+    legal: LAVA is licensed under the [GPL-3](https://www.gnu.org/licenses/gpl-3.0.en.html) license.
