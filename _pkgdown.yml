@@ -34,13 +34,6 @@ reference:
   desc: "All package functions"
   contents:
   - hello
-  - calculate_lava
-  - is_numeric_vector
-  - is_positive_numeric
-- title: "Data"
-  desc: "Package datasets"
-  contents:
-  - example_data
 
 footer:
   structure:
