@@ -6,7 +6,7 @@ Authors@R:
            family = "do O",
            role = c("aut", "cre"),
            email = "isabela.doo@unil.ch",
-           comment = c(ORCID = "0000-0000-0000-0000"))
+           comment = c(ORCID = "0000-0001-6664-8748"))
 Description: The LAVA package provides tools for analyzing the log ratio of ancestral 
     variances. It helps researchers analyze genomic data and evolutionary patterns 
     through statistical methods specialized for variance analysis.
@@ -22,3 +22,6 @@ Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
 VignetteBuilder: knitr
+Depends: 
+    R (>= 3.5)
+LazyData: true
