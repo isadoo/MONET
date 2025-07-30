@@ -5,8 +5,9 @@
 ## usethis namespace: end
 NULL
 
-#' @title LAVA: Log ratio of Ancestral Variances
-#' @description The LAVA package provides tools for analyzing the log ratio 
+#' LAVA: Log ratio of Ancestral Variances
+#'
+#' The LAVA package provides tools for analyzing the log ratio 
 #' of ancestral variances. This package helps researchers analyze genomic data
 #' and evolutionary patterns through statistical methods specialized for variance analysis.
 #' 
@@ -18,6 +19,5 @@ NULL
 #'   \item Visualization tools for results interpretation
 #' }
 #' 
-#' @docType package
 #' @name LAVA-package
 NULL

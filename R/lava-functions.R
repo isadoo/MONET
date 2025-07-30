@@ -8,6 +8,7 @@
 #' @param log_base The base of the logarithm to use (default: natural log)
 #'
 #' @return A numeric value representing the log ratio of variances
+#' @importFrom stats var
 #' @export
 #'
 #' @examples

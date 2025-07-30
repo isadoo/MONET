@@ -30,19 +30,17 @@ navbar:
         href: articles/development-guide.html
 
 reference:
-- title: "Package Information"
-  desc: >
-    Documentation for the package itself
-  contents:
-  - LAVA-package
-- title: "Core Functions"
-  desc: "Main functions for variance analysis"
-  contents:
-  - calculate_lava
-- title: "Utility Functions"
-  desc: "Helper functions"
+- title: "Functions"
+  desc: "All package functions"
   contents:
   - hello
+  - calculate_lava
+  - is_numeric_vector
+  - is_positive_numeric
+- title: "Data"
+  desc: "Package datasets"
+  contents:
+  - example_data
 
 footer:
   structure:

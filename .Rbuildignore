@@ -19,3 +19,6 @@
 ^man/figures$
 ^doc$
 ^Meta$
+^BUILDING\.md$
+^vscode-development\.md$
+^Rplots\.pdf$

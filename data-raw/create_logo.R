@@ -1,6 +1,9 @@
 # Script to create LAVA package logo
 # Run this script to generate the package logo
 
+# Set CRAN mirror
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
 # Load necessary packages
 if (!requireNamespace("hexSticker", quietly = TRUE)) {
   install.packages("hexSticker")
