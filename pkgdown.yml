@@ -4,7 +4,7 @@ pkgdown_sha: ~
 articles:
   development-guide: development-guide.html
   introduction-to-lava: introduction-to-lava.html
-last_built: 2025-07-31T08:56Z
+last_built: 2025-07-31T09:37Z
 urls:
   reference: https://isadoo.github.io/LAVA/reference
   article: https://isadoo.github.io/LAVA/articles
