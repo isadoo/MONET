@@ -1,11 +1,21 @@
 ---
 title: "LAVA Development Guide"
+subtitle: "Contributing to the LAVA Package"
+author: "Isabela do O"
+date: "`r Sys.Date()`"
 output: 
   html_document:
     toc: true
     toc_float: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
   pdf_document:
     toc: true
+    number_sections: true
+    latex_engine: xelatex
+    fig_caption: true
 vignette: >
   %\VignetteIndexEntry{LAVA Development Guide}
   %\VignetteEngine{knitr::rmarkdown}
