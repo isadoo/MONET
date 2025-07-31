@@ -4,7 +4,7 @@
 #'
 #' @description Given genetic data it provides coancestry for between and within populations
 #' 
-#' @usage coancestries_calculate(genetic_data_parents, genetic_data_F1, population_individual_id = NA, pedigree = NA, usepedigree = FALSE, datatype = "dosage", BiAllelic = TRUE)
+#' @usage coancestries_calculate(genetic_data_parents, genetic_data_F1, datatype = "dosage", number_of_populations = NA, population_individual_id = NA, pedigree = NA, usepedigree = FALSE, BiAllelic = TRUE)
 #'
 #' @param genetic_data_parents A data frame or file name containing genetic data for the parental generation.
 #' The format should match the specified datatype (e.g., dosage, VCF, or dat which is FSTAT format).
@@ -39,7 +39,7 @@
 #' @references
 #' - Goudet & Weir (2023)
 #'
-#'
+#' @export
 
 coancestries_calculate <- function(genetic_data_parents, genetic_data_F1, datatype = "dosage" , number_of_populations = NA, population_individual_id = NA, pedigree = NA, usepedigree = FALSE, BiAllelic = TRUE) {
 
