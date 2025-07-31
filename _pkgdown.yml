@@ -11,7 +11,7 @@ home:
   title: Log ratio of Ancestral Variances
   description: >
     An R package for analyzing the log ratio of ancestral variances to identify
-    evolutionary patterns in genomic data.
+    evolutionary patterns in genomic data using Bayesian mixed-effects models.
   sidebar:
     structure: [links, license, community, citation, authors, dev]
 
@@ -30,10 +30,16 @@ navbar:
         href: articles/development-guide.html
 
 reference:
-- title: "Functions"
-  desc: "All package functions"
+- title: "Main Functions"
+  desc: "Core functions for LAVA analysis"
   contents:
-  - hello
+  - lava
+  - coancestries_calculate
+- title: "Utility Functions"
+  desc: "Helper functions for data processing"
+  contents:
+  - kinship_from_pedigree
+  - counting_blocks_matrix
 
 footer:
   structure:
