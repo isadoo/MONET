@@ -8,22 +8,35 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-The LAVA package provides tools for analyzing the log ratio of ancestral variances. It helps researchers analyze genomic data and evolutionary patterns through statistical methods specialized for variance analysis.
+The LAVA package provides tools for analyzing the log ratio of ancestral variances. It helps researchers analyze genomic data and evolutionary patterns through statistical methods specialized for variance analysis using Bayesian mixed-effects models.
 
 The LAVA package provides tools for analyzing the log ratio
 of ancestral variances. This package helps researchers analyze genomic data
 and evolutionary patterns through statistical methods specialized for variance analysis.
 }
-\section{Package Organization}{
+\section{Main Functions}{
 
-The LAVA package is organized into several key components:
+The LAVA package provides several key functions:
 \itemize{
-\item Data analysis functions for variance comparison
-\item Utility functions for data preprocessing
-\item Visualization tools for results interpretation
+\item \code{\link{lava}}: Main function for estimating log ratios of ancestral variances
+\item \code{\link{coancestries_calculate}}: Calculate coancestry matrices from genetic data
+\item \code{\link{kinship_from_pedigree}}: Calculate kinship matrix from pedigree data
+\item \code{\link{counting_blocks_matrix}}: Utility function for matrix block counting
 }
 }
 
+\section{Dependencies}{
+
+This package relies on:
+\itemize{
+\item \pkg{brms}: For Bayesian mixed-effects modeling
+\item \pkg{hierfstat}: For population genetics calculations
+}
+}
+
+\references{
+Goudet & Weir (2023), do O et al (2025)
+}
 \seealso{
 Useful links:
 \itemize{
@@ -36,5 +49,7 @@ Useful links:
 \author{
 \strong{Maintainer}: Isabela do O \email{isabela.doo@unil.ch} (\href{https://orcid.org/0000-0001-6664-8748}{ORCID})
 
+
+Isabela do O \email{isabela.doo@unil.ch}
 }
 \keyword{internal}
