@@ -4,7 +4,7 @@
 #' @description Given coancestry matrices for between and within populations and a trait data frame, 
 #' this function estimates the log ratio of ancestral variances using a Bayesian mixed-effects model.
 #' 
-#' @usage log_av(Theta.P, The.M, trait_dataframe)
+#' @usage lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
 #'
@@ -12,6 +12,12 @@
 #'
 #' @param trait_dataframe A data frame containing individual IDs and trait values. 
 #' The first column should be individual IDs, and the second column should be trait values.
+#'
+#' @param column_individual The name of the column containing individual IDs. Default is "id".
+#'
+#' @param column_trait The name of the column containing trait values. Default is "trait".
+#'
+#' @param ... Additional arguments passed to the brms function.
 #'
 #' @return A lava type object containing:
 #' \item{posterior_samples}{A list with posterior samples of variance components and residuals.}
@@ -31,6 +37,7 @@
 #' - Goudet & Weir (2023)
 #' - do O et al (2025)
 #'
+#' @export
 lava <- function(Theta.P, 
                 The.M, 
                 trait_dataframe, 

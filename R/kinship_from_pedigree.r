@@ -21,12 +21,23 @@
 #' If individuals share both parents (full siblings), their kinship coefficient is \eqn{\frac{1}{4} + \frac{1}{4} = \frac{1}{2}}.
 #'
 #' @examples
-#'
+#' # Create a simple pedigree
+#' pedigree <- data.frame(
+#'   id = c("A", "B", "C", "D"),
+#'   sire = c(NA, NA, "A", "A"),
+#'   dam = c(NA, NA, "B", "B")
+#' )
+#' 
+#' # Calculate kinship matrix
+#' kinship_matrix <- kinship_from_pedigree(pedigree)
 #'
 #' @author Isabela do O \email{isabela.doo@@unil.ch}
 #' 
 #' @references 
+#' Lynch, M., & Walsh, B. (1998). Genetics and analysis of quantitative traits. 
+#' Sinauer Associates.
 #' 
+#' @export
 kinship_from_pedigree <- function(pedigree) {
   
   ids <- pedigree$id
