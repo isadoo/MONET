@@ -57,26 +57,7 @@ This is a basic example which shows you how to use LAVA:
 ``` r
 library(LAVA)
 
-# Example: Create a simple pedigree for kinship calculation
-pedigree <- data.frame(
-  id = c("C1", "C2", "C3", "C4"),
-  sire = c("P1", "P1", "P3", "P3"),
-  dam = c("P2", "P2", "P4", "P4"),
-  stringsAsFactors = FALSE
-)
-
-# Calculate kinship matrix from pedigree
-kinship_matrix <- kinship_from_pedigree(pedigree)
-print(kinship_matrix)
 ```
-
-## Features
-
-The LAVA package provides:
-
-  - Analysis tools for variance comparison
-  - Utility functions for data preprocessing
-  - Visualization tools for results interpretation
 
 ## Documentation
 
@@ -90,5 +71,3 @@ guide](.github/CONTRIBUTING.md) to get started.
 
 ## License
 
-LAVA is licensed under the GPL-3 license. See the [LICENSE](LICENSE.md)
-file for more details.
