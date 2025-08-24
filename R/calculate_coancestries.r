@@ -222,6 +222,8 @@ calculate_coancestries <- function(genetic_data_parents,
     if (any(eigenvalues < 0)) {
         cat("M matrix not positive definite. \n")
         cat("Minimum eigenvalue is ", min(eigenvalues), "\n")
+        The.M <- as.matrix(Matrix::nearPD(The.M, corr = TRUE)$mat)
+        cat("WARNING::M matrix corrected to be positive definite. \n")
     }
 
     cat("The.M calculated with dimensions ", dim(The.M), "\n")

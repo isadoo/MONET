@@ -16,14 +16,15 @@
 #' @param column_individual The name of the column containing individual IDs. Default is "id".
 #'
 #' @param column_trait The name of the column containing trait values. Default is "trait".
+#' 
+#' @param formula A formula specifying the model structure. Default is 
 #'
 #' @param ... Additional arguments passed to the brms function.
 #'
 #' @return A lava type object containing:
 #' \item{posterior_samples}{A list with posterior samples of variance components and residuals.}
-#' \item{BRMS_stats}{A list with the median, lower and upper bounds of the 95% credible interval for the variance difference.}
 #' \item{log_ratio}{A list with the p-value of the log ratios, the mean of the log ratio of between- and within-population variance, and confidence intervals.}
-#' \item{BRMS_model}{A list with the fitted Bayesian model and hypothesis test results.}
+#' \item{model}{as an atribute.}
 #'
 #'
 #' @details This function standardizes trait data, constructs a Bayesian mixed-effects model 
@@ -42,7 +43,8 @@ lava <- function(Theta.P,
                 The.M, 
                 trait_dataframe, 
                 column_individual = "id", 
-                column_trait = "trait", ...) {
+                column_trait = "trait", 
+                formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))", ...) {
   
   #check input types and dimensions ------------------------
   if (!is.matrix(Theta.P) || !is.matrix(The.M)) {
@@ -89,7 +91,7 @@ lava <- function(Theta.P,
   dat <- data.frame(pop = pop_labels, ind = trait_dataframe[,id_col], Y = Y)
   
   #Bayesian model - using brms package
-  brms_mf <- brm(Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M)), 
+  brms_mf <- brm(formula = formula, 
                  data = dat, data2 = list(two.Theta.P = two.Theta.P, The.M = The.M), 
                  family = gaussian(), chains = 8, cores = 4, iter = 3000, warmup = 1000, thin = 2, ...)
   
@@ -117,14 +119,6 @@ lava <- function(Theta.P,
   #S3 object of class "lava"
   results <- list(
     posteriors_samples = post_samples,
-    
-    #basic statistics together
-    BRMS_stats = list(
-      median = quant_med["50%"],
-      median_lower = quant_med["2.5%"],
-      median_upper = quant_med["97.5%"],
-      mean_diff = mean_diff
-    ),
     
     #log ratio statistics together
     log_ratio = list(
@@ -162,13 +156,6 @@ print.lava <- function(x, ...) {
               x$log_ratio$mean_log_ratio, 
               x$log_ratio$log_ratio_ci_lower, 
               x$log_ratio$log_ratio_ci_upper))
-  
-  cat("\nDifference in variance components (between equation/ within equation):\n")
-  cat(sprintf("  Mean: %.4f\n", x$BRMS_stats$mean_diff))
-  cat(sprintf("  Median: %.4f (95%% CI: %.4f to %.4f)\n", 
-              x$BRMS_stats$median, 
-              x$BRMS_stats$median_lower, 
-              x$BRMS_stats$median_upper))
   
   cat("\nStatistical tests:\n")
   cat(sprintf("  Hypothesis test p-value: %.4f\n", x$log_ratio$p_value))
@@ -218,13 +205,6 @@ plot.lava <- function(x, which = "both",
     
     #reference line at 0 (equal variances)
     abline(v = 0, lty = 2, col = "red", lwd = 2)
-    
-    #mean 
-    abline(v = x$BRMS_log$mean_log_ratio, col = "darkblue", lwd = 2)
-    
-    #CI lines
-    abline(v = x$BRMS_log$log_ratio_ci_lower, col = "darkblue", lty = 3, lwd = 1.5)
-    abline(v = x$BRMS_log$log_ratio_ci_upper, col = "darkblue", lty = 3, lwd = 1.5)
     
     
     legend("topright", 
@@ -280,3 +260,17 @@ plot.lava <- function(x, which = "both",
   
   invisible(x)
 }
+
+print.lava(results)
+
+#===============================
+#Log Ancestral Variance Analysis (LAVA)
+#===============================
+
+#Log ratio of estimated ancestral variances (between equation/ within equation):
+#  Mean: 0.8403 (95% CI: -0.0496 to 1.8339)
+
+#Statistical tests:
+#  Hypothesis test p-value: 0.0635
+
+#===============================
