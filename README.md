@@ -27,10 +27,10 @@ date](https://img.shields.io/github/release-date/isadoo/LAVA.svg)](https://githu
 release](https://img.shields.io/github/release/isadoo/LAVA.svg)](https://github.com/isadoo/LAVA/releases)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)](https://github.com/isadoo/LAVA/blob/master/DESCRIPTION)
 [![Project Status:
-WIP](https://www.repostatus.org/badges/latest/WIP.svg)](https://www.repostatus.org/#WIP)
-[![r-universe](https://isadoo.r-universe.dev/badges/LAVA)](https://isadoo.r-universe.dev/LAVA)
+WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![r-universe](https://isadoo.r-universe.dev/badges/LAVA)](https://isadoo.r-universe.dev)
 [![minimal R
-version](https://img.shields.io/badge/R%3E%3D-4.1.0-6666ff.svg)](https://cran.r-project.org/)
+version](https://img.shields.io/badge/R%3E%3D-3.5-6666ff.svg)](https://cran.r-project.org/)
 <!-- badges: end -->
 
 ## Overview
@@ -56,18 +56,8 @@ This is a basic example which shows you how to use LAVA:
 
 ``` r
 library(LAVA)
-# Basic example code will be added once package functionality is implemented
-hello()
-#> [1] "Hello, world!"
+
 ```
-
-## Features
-
-The LAVA package provides:
-
-  - Analysis tools for variance comparison
-  - Utility functions for data preprocessing
-  - Visualization tools for results interpretation
 
 ## Documentation
 
@@ -81,5 +71,3 @@ guide](.github/CONTRIBUTING.md) to get started.
 
 ## License
 
-LAVA is licensed under the GPL-3 license. See the [LICENSE](LICENSE.md)
-file for more details.

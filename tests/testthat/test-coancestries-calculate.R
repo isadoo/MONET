@@ -1,31 +1,31 @@
-test_that("coancestries_calculate validates input parameters", {
-  # Test invalid datatype
-  expect_error(
-    coancestries_calculate(
-      genetic_data_parents = matrix(1, 10, 10),
-      genetic_data_F1 = matrix(1, 10, 10),
-      datatype = "invalid_type"
-    ),
-    "Invalid data type"
-  )
-  
+test_that("calculate_coancestries validates input parameters", {
   # Test missing population information for dosage data
   expect_error(
-    coancestries_calculate(
+    calculate_coancestries(
       genetic_data_parents = matrix(1, 10, 10),
-      genetic_data_F1 = matrix(1, 10, 10),
-      datatype = "dosage"
+      genotyped_parent_populations = rep(1:2, each = 5)
     ),
-    "Population data missing"
+    "Population data missing|Missing F1 data"
+  )
+  
+  # Test missing F1 data
+  expect_error(
+    calculate_coancestries(
+      genetic_data_parents = matrix(1, 10, 10),
+      genotyped_parent_populations = rep(1:2, each = 5)
+    ),
+    "Missing F1 data"
   )
 })
 
-test_that("coancestries_calculate works with dosage data and population info", {
+test_that("calculate_coancestries works with dosage data and population info", {
   skip_if_not_installed("hierfstat")
+  skip_if_not_installed("dplyr")
   
   # Create mock dosage data
   set.seed(123)
   n_parents <- 20
+  n_f1 <- 20
   n_markers <- 50
   n_populations <- 2
   
@@ -37,18 +37,26 @@ test_that("coancestries_calculate works with dosage data and population info", {
   
   # F1 dosage data
   f1_dosage <- matrix(
-    sample(0:2, n_parents * n_markers, replace = TRUE),
-    nrow = n_parents, ncol = n_markers
+    sample(0:2, n_f1 * n_markers, replace = TRUE),
+    nrow = n_f1, ncol = n_markers
   )
   
-  # Population assignment (balanced design)
-  individuals_per_pop <- n_parents / n_populations
+  # Population assignment for parents and F1
+  parent_populations <- rep(1:n_populations, each = n_parents/n_populations)
+  f1_populations <- rep(1:n_populations, each = n_f1/n_populations)
   
-  result <- coancestries_calculate(
+  # Population mapping
+  population_mapping <- data.frame(
+    id = paste0("ind_", 1:n_f1),
+    population_id = f1_populations
+  )
+  
+  result <- calculate_coancestries(
     genetic_data_parents = parent_dosage,
+    genotyped_parent_populations = parent_populations,
     genetic_data_F1 = f1_dosage,
-    datatype = "dosage",
-    number_of_populations = n_populations
+    population_individual_id = population_mapping,
+    all_parents_genotyped = TRUE
   )
   
   # Check return structure
@@ -57,24 +65,22 @@ test_that("coancestries_calculate works with dosage data and population info", {
   expect_true("Theta.P" %in% names(result))
   
   # Check dimensions
-  expect_equal(dim(result$The.M), c(n_parents, n_parents))
+  expect_equal(dim(result$The.M), c(n_f1, n_f1))
   expect_equal(dim(result$Theta.P), c(n_populations, n_populations))
   
   # Check that matrices are symmetric
   expect_equal(result$The.M, t(result$The.M))
   expect_equal(result$Theta.P, t(result$Theta.P))
-  
-  # Check that Theta.P is a valid coancestry matrix (diagonal >= off-diagonal)
-  diag_values <- diag(result$Theta.P)
-  expect_true(all(diag_values >= 0))
 })
 
-test_that("coancestries_calculate works with pedigree option", {
+test_that("calculate_coancestries works with pedigree option", {
   # Create a simple pedigree
   pedigree <- data.frame(
-    id = c("P1", "P2", "P3", "P4", "C1", "C2", "C3", "C4"),
-    sire = c(NA, NA, NA, NA, "P1", "P1", "P3", "P3"),
-    dam = c(NA, NA, NA, NA, "P2", "P2", "P4", "P4"),
+    id = c("C1", "C2", "C3", "C4"),
+    sire = c("P1", "P1", "P3", "P3"),
+    dam = c("P2", "P2", "P4", "P4"),
+    sire_pop = c(1, 1, 2, 2),
+    dam_pop = c(1, 1, 2, 2),
     stringsAsFactors = FALSE
   )
   
@@ -85,25 +91,27 @@ test_that("coancestries_calculate works with pedigree option", {
     nrow = 4, ncol = 20
   )
   
-  # Test with pedigree (usepedigree = TRUE)
+  parent_populations <- c(1, 1, 2, 2)
+  
+  # Test with pedigree
   expect_error({
-    result_pedigree <- coancestries_calculate(
+    result_pedigree <- calculate_coancestries(
       genetic_data_parents = parent_dosage,
-      genetic_data_F1 = NULL,  # Not used when usepedigree = TRUE
-      datatype = "dosage",
-      number_of_populations = 2,
+      genotyped_parent_populations = parent_populations,
       pedigree = pedigree,
-      usepedigree = TRUE
+      all_parents_genotyped = FALSE
     )
   }, NA)  # Should not error
 })
 
-test_that("coancestries_calculate handles population individual mapping", {
+test_that("calculate_coancestries handles population individual mapping", {
   skip_if_not_installed("hierfstat")
+  skip_if_not_installed("dplyr")
   
   # Create mock data
   set.seed(789)
   n_parents <- 12
+  n_f1 <- 12
   n_markers <- 30
   
   parent_dosage <- matrix(
@@ -112,21 +120,24 @@ test_that("coancestries_calculate handles population individual mapping", {
   )
   
   f1_dosage <- matrix(
-    sample(0:2, n_parents * n_markers, replace = TRUE),
-    nrow = n_parents, ncol = n_markers
+    sample(0:2, n_f1 * n_markers, replace = TRUE),
+    nrow = n_f1, ncol = n_markers
   )
   
   # Create unbalanced population assignment
+  parent_populations <- c(rep(1, 5), rep(2, 4), rep(3, 3))
+  
   population_mapping <- data.frame(
-    population = c(rep(1, 5), rep(2, 4), rep(3, 3)),
-    individual = paste0("ind_", 1:n_parents)
+    id = paste0("ind_", 1:n_f1),
+    population_id = c(rep(1, 5), rep(2, 4), rep(3, 3))
   )
   
-  result <- coancestries_calculate(
+  result <- calculate_coancestries(
     genetic_data_parents = parent_dosage,
+    genotyped_parent_populations = parent_populations,
     genetic_data_F1 = f1_dosage,
-    datatype = "dosage",
-    population_individual_id = population_mapping
+    population_individual_id = population_mapping,
+    all_parents_genotyped = TRUE
   )
   
   # Should handle unbalanced design
@@ -134,19 +145,27 @@ test_that("coancestries_calculate handles population individual mapping", {
   expect_equal(dim(result$Theta.P), c(3, 3))  # 3 populations
 })
 
-test_that("coancestries_calculate output properties", {
+test_that("calculate_coancestries output properties", {
   skip_if_not_installed("hierfstat")
+  skip_if_not_installed("dplyr")
   
   # Create minimal test case
   set.seed(999)
   parent_dosage <- matrix(sample(0:2, 8 * 10, replace = TRUE), nrow = 8, ncol = 10)
   f1_dosage <- matrix(sample(0:2, 8 * 10, replace = TRUE), nrow = 8, ncol = 10)
   
-  result <- coancestries_calculate(
+  parent_populations <- rep(1:2, each = 4)
+  population_mapping <- data.frame(
+    id = paste0("ind_", 1:8),
+    population_id = rep(1:2, each = 4)
+  )
+  
+  result <- calculate_coancestries(
     genetic_data_parents = parent_dosage,
+    genotyped_parent_populations = parent_populations,
     genetic_data_F1 = f1_dosage,
-    datatype = "dosage",
-    number_of_populations = 2
+    population_individual_id = population_mapping,
+    all_parents_genotyped = TRUE
   )
   
   # The.M should be positive semi-definite

@@ -1,9 +1,12 @@
 ###########################################################################
-#' @title calculate coancestries
+#' @title Calculate coancestries
 #'
 #' @description Given genetic data it provides coancestry for between and within populations
 #' 
-#' @usage coancestries_calculate(genetic_data_parents, genetic_data_F1, population_individual_id = NA, pedigree = NA, data_type = "dosage", BiAllelic = TRUE)
+#' @usage calculate_coancestries(genetic_data_parents, genotyped_parent_populations, 
+#'   genetic_data_F1 = NA, population_individual_id = NA, 
+#'   column_individual = "id", column_population = "population_id", 
+#'   pedigree = NA, all_parents_genotyped = FALSE)
 #'
 #' @param genetic_data_parents A data frame or file name containing genetic data for the parental generation. Must be dosage format.
 #' 
@@ -13,6 +16,10 @@
 #' 
 #' @param population_individual_id (Optional) A data frame mapping individuals to their respective populations. First parent ids, then F1 ids.
 #' If not provided, a balanced design is assumed.
+#'
+#' @param column_individual The name of the column containing individual IDs. Default is "id".
+#'
+#' @param column_population The name of the column containing population IDs. Default is "population_id".
 #'
 #' @param pedigree (Optional) A data frame containing pedigree information with at least three columns: 
 #' individual ID, dam ID, and sire ID.
@@ -30,7 +37,7 @@
 #' @references
 #' - Goudet & Weir (2023)
 #'
-#'
+#' @export
 
 calculate_coancestries <- function(genetic_data_parents,
                                    genotyped_parent_populations, 
@@ -40,6 +47,9 @@ calculate_coancestries <- function(genetic_data_parents,
                                    column_population = "population_id", 
                                    pedigree = NA,
                                    all_parents_genotyped = FALSE) {
+
+    # Fix for R CMD check global variable notes
+    dam <- dam_pop <- sire <- sire_pop <- id <- population_id <- n <- sire_n <- dam_n <- NULL
 
 
 

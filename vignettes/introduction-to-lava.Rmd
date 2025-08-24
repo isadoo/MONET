@@ -1,15 +1,29 @@
 ---
 title: "Introduction to LAVA"
+subtitle: "Log ratio of Ancestral Variances Analysis"
+author: "Isabela do O"
+date: "`r Sys.Date()`"
 output: 
   html_document:
     toc: true
     toc_float: true
+    number_sections: true
+    theme: flatly
+    highlight: tango
+    code_folding: show
   pdf_document:
     toc: true
+    number_sections: true
+    latex_engine: xelatex
+    fig_caption: true
+    includes:
+      in_header: !expr if(file.exists("latex_header.tex")) "latex_header.tex"
 vignette: >
   %\VignetteIndexEntry{Introduction to LAVA}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+bibliography: !expr if(file.exists("references.bib")) "references.bib"
+csl: !expr if(file.exists("style.csl")) "style.csl"
 ---
 
 ```{r, include = FALSE}

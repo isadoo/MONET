@@ -42,13 +42,14 @@ test_that("Package function signatures are correct", {
                            "column_individual", "column_trait", "...")
   expect_true(all(expected_lava_params %in% lava_formals))
   
-  # coancestries_calculate function  
-  expect_true(exists("coancestries_calculate"))
-  coanc_formals <- names(formals(coancestries_calculate))
-  expected_coanc_params <- c("genetic_data_parents", "genetic_data_F1", "datatype",
-                            "number_of_populations", "population_individual_id", 
-                            "pedigree", "usepedigree", "BiAllelic")
-  expect_true(all(expected_coanc_params %in% coanc_formals))
+  # calculate_coancestries function  
+  expect_true(exists("calculate_coancestries"))
+  calc_formals <- names(formals(calculate_coancestries))
+  expected_calc_params <- c("genetic_data_parents", "genotyped_parent_populations", 
+                           "genetic_data_F1", "population_individual_id", 
+                           "column_individual", "column_population", "pedigree", 
+                           "all_parents_genotyped")
+  expect_true(all(expected_calc_params %in% calc_formals))
   
   # kinship_from_pedigree function
   expect_true(exists("kinship_from_pedigree"))

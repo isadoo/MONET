@@ -34,7 +34,7 @@ reference:
   desc: "Core functions for LAVA analysis"
   contents:
   - lava
-  - coancestries_calculate
+  - calculate_coancestries
 - title: "Utility Functions"
   desc: "Helper functions for data processing"
   contents:

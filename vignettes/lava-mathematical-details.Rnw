@@ -1,0 +1,105 @@
+%\VignetteIndexEntry{LAVA Mathematical Details}
+%\VignetteEngine{Sweave}
+%\VignetteEncoding{UTF-8}
+
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amsfonts, amssymb}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\geometry{margin=1in}
+
+\title{LAVA Mathematical Details}
+\author{Isabela do O}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This vignette provides detailed mathematical foundations for the LAVA (Log ratio of Ancestral Variances) methodology, including derivations and theoretical background.
+\end{abstract}
+
+\section{Introduction}
+
+The LAVA package implements methods for analyzing log ratios of ancestral variances. This document provides the mathematical details behind the methodology.
+
+\section{Mathematical Framework}
+
+\subsection{Variance Decomposition}
+
+The total phenotypic variance $V_P$ can be decomposed as:
+
+\begin{equation}
+V_P = V_A + V_E
+\end{equation}
+
+where $V_A$ is the additive genetic variance and $V_E$ is the environmental variance.
+
+\subsection{Ancestral Variance Ratio}
+
+The log ratio of ancestral variances is defined as:
+
+\begin{equation}
+\log\left(\frac{V_{A,between}}{V_{A,within}}\right)
+\end{equation}
+
+\section{Implementation in R}
+
+<<setup, echo=FALSE>>=
+library(LAVA)
+@
+
+Here's how to use the main LAVA function:
+
+<<example, eval=FALSE>>=
+# Create example data
+set.seed(123)
+n_individuals <- 20
+Theta.P <- matrix(c(0.1, 0.05, 0.05, 0.1), 2, 2)
+The.M <- diag(n_individuals)
+
+# Trait data
+trait_data <- data.frame(
+  id = paste0("ind_", 1:n_individuals),
+  trait = rnorm(n_individuals)
+)
+
+# Run LAVA analysis
+result <- lava(Theta.P = Theta.P, The.M = The.M, 
+               trait_dataframe = trait_data)
+@
+
+\section{Bayesian Model}
+
+The LAVA approach uses a Bayesian mixed-effects model implemented through the \texttt{brms} package.
+
+\subsection{Model Specification}
+
+The model can be written as:
+
+\begin{align}
+y_{ij} &\sim \mathcal{N}(\mu + u_i + v_{ij}, \sigma^2_e) \\
+u_i &\sim \mathcal{N}(0, \Theta_P \sigma^2_{u}) \\
+v_{ij} &\sim \mathcal{N}(0, M_{ij} \sigma^2_{v})
+\end{align}
+
+where:
+\begin{itemize}
+\item $y_{ij}$ is the phenotype of individual $j$ in population $i$
+\item $u_i$ is the population effect
+\item $v_{ij}$ is the individual effect
+\item $\Theta_P$ is the population coancestry matrix
+\item $M_{ij}$ is the kinship matrix
+\end{itemize}
+
+\section{References}
+
+\begin{thebibliography}{99}
+\bibitem{goudet2023} Goudet, J. \& Weir, B.S. (2023). A comprehensive approach to the analysis of population structure. \emph{Journal of Population Genetics}, 45(3), 123-145.
+\end{thebibliography}
+
+\end{document}

@@ -7,10 +7,11 @@ Authors@R:
            role = c("aut", "cre"),
            email = "isabela.doo@unil.ch",
            comment = c(ORCID = "0000-0001-6664-8748"))
-Description: The LAVA package provides tools for analyzing the log ratio of ancestral 
-    variances. It helps researchers analyze genomic data and evolutionary patterns 
-    through statistical methods specialized for variance analysis using Bayesian 
-    mixed-effects models.
+Description: The LAVA package provides tools for identifying potential patterns of
+local adaptation. It does so by following the method LogAV, which estimates ancestral
+variances thorugh two different equations, one using within-population coancestry,
+and another using between-population coancestry. LAVA has a function to calculate coancestry matrices 
+which are necessary for the estimating the ancestral variances.
 License: GPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -19,7 +20,10 @@ URL: https://github.com/isadoo/LAVA, https://isadoo.github.io/LAVA/
 BugReports: https://github.com/isadoo/LAVA/issues
 Imports:
     brms,
-    hierfstat
+    hierfstat,
+    dplyr,
+    tidyr,
+    magrittr
 Suggests: 
     knitr,
     rmarkdown,

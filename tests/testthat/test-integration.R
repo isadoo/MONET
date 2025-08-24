@@ -24,7 +24,7 @@ test_that("Package integration workflow works", {
   # )
   # 
   # # Step 2: Calculate coancestries
-  # coancestries <- coancestries_calculate(
+  # coancestries <- calculate_coancestries(
   #   genetic_data_parents = parent_dosage,
   #   genetic_data_F1 = f1_dosage,
   #   datatype = "dosage",
@@ -156,13 +156,12 @@ test_that("Error messages are informative", {
     "at least two columns"
   )
   
-  # Invalid datatype in coancestries_calculate
+  # Invalid function in calculate_coancestries
   expect_error(
-    coancestries_calculate(
+    calculate_coancestries(
       genetic_data_parents = matrix(1, 2, 2),
-      genetic_data_F1 = matrix(1, 2, 2),
-      datatype = "nonexistent_type"
+      genotyped_parent_populations = c(1, 1)
     ),
-    "Invalid data type"
+    "Missing F1 data"
   )
 })

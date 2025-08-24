@@ -29,13 +29,13 @@ knitr::opts_chunk$set(
 [![GitHub release](https://img.shields.io/github/release/isadoo/LAVA.svg)](https://github.com/isadoo/LAVA/releases)
 [![Dependencies](https://img.shields.io/badge/dependencies-up%20to%20date-brightgreen)](https://github.com/isadoo/LAVA/blob/master/DESCRIPTION)
 [![Project Status: WIP](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
-[![r-universe](https://isadoo.r-universe.dev/badges/LAVA)](https://isadoo.r-universe.dev/LAVA)
-[![minimal R version](https://img.shields.io/badge/R%3E%3D-4.1.0-6666ff.svg)](https://cran.r-project.org/)
+[![r-universe](https://isadoo.r-universe.dev/badges/LAVA)](https://isadoo.r-universe.dev)
+[![minimal R version](https://img.shields.io/badge/R%3E%3D-3.5-6666ff.svg)](https://cran.r-project.org/)
 <!-- badges: end -->
 
 ## Overview
 
-LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze genomic data through the lens of ancestral variance ratios. The package provides tools for statistical analysis and visualization of evolutionary patterns.
+LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze quantitative trait data in order to test for local adaptation following the method LogAV. We do that by comparing estimates of ancestral variances. The package provides tools for statistical analysis for identifying local adaptation.
 
 ## Installation
 
@@ -50,28 +50,37 @@ pak::pak("isadoo/LAVA")
 
 This is a basic example which shows you how to use LAVA:
 
-```{r example}
+```{r example, eval=FALSE}
 library(LAVA)
-# Basic example code will be added once package functionality is implemented
-hello()
+coancestries <- calculate_coancestries(genetic_data_parents = dos_Founders,
+                                              genotyped_parent_populations = pop,
+                                              genetic_data_F1 = dos_F1, 
+                                              population_individual_id = population_individual_id_df,
+                                              column_individual = "individual", 
+                                              column_population = "pop_id")
+results <- lava(Theta.P, 
+                The.M, 
+                trait_dataframe = trait_df_pop, 
+                column_individual = "individual", 
+                column_trait = "trait")
+
 ```
 
 ## Features
 
 The LAVA package provides:
 
-- Analysis tools for variance comparison
-- Utility functions for data preprocessing
-- Visualization tools for results interpretation
+- Analysis tools for estimated variance comparison
+- Coancestry matrix calculator
 
 ## Documentation
 
-For more detailed information, check out the [LAVA website](https://isadoo.github.io/LAVA/).
+For more detailed information, please check ...?.
 
 ## Contributing
 
 Contributions to LAVA are welcome! Please see our [contributing guide](.github/CONTRIBUTING.md) to get started.
 
-## License
-
-LAVA is licensed under the GPL-3 license. See the [LICENSE](LICENSE.md) file for more details.
+## Citation
+If you use LAVA in your research, please cite:
+[add citation for the two papers]
