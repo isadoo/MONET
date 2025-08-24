@@ -61,13 +61,8 @@ library(LAVA)
 
 ## Documentation
 
-For more detailed information, check out the [LAVA
-website](https://isadoo.github.io/LAVA/).
+For more detailed information, check ...
 
-## Contributing
-
-Contributions to LAVA are welcome\! Please see our [contributing
-guide](.github/CONTRIBUTING.md) to get started.
 
 ## License
 
