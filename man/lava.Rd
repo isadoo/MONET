@@ -4,7 +4,8 @@
 \alias{lava}
 \title{lava: Log ratios of ancestral variances}
 \usage{
-lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", ...)
+lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", 
+            column_population = "population", formula_covariates = NULL, ...)
 }
 \arguments{
 \item{Theta.P}{A square matrix representing the coancestry matrix between populations.}
@@ -18,14 +19,18 @@ The first column should be individual IDs, and the second column should be trait
 
 \item{column_trait}{The name of the column containing trait values. Default is "trait".}
 
+\item{column_population}{The name of the column containing population IDs. Default is "population".}
+
+\item{formula_covariates}{A character string specifying additional covariates to include in the model.
+For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).}
+
 \item{...}{Additional arguments passed to the brms function.}
 }
 \value{
 A lava type object containing:
 \item{posterior_samples}{A list with posterior samples of variance components and residuals.}
-\item{BRMS_stats}{A list with the median, lower and upper bounds of the 95\% credible interval for the variance difference.}
 \item{log_ratio}{A list with the p-value of the log ratios, the mean of the log ratio of between- and within-population variance, and confidence intervals.}
-\item{BRMS_model}{A list with the fitted Bayesian model and hypothesis test results.}
+\item{model}{as an attribute.}
 }
 \description{
 Given coancestry matrices for between and within populations and a trait data frame,

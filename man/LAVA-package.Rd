@@ -6,9 +6,13 @@
 \alias{LAVA-package}
 \title{LAVA: Log ratio of Ancestral Variances}
 \description{
-\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+\if{html}{\figure{logo.png}{options: align='right' alt='logo' width='120'}}
 
-The LAVA package provides tools for analyzing the log ratio of ancestral variances. It helps researchers analyze genomic data and evolutionary patterns through statistical methods specialized for variance analysis using Bayesian mixed-effects models.
+The LAVA package provides tools for identifying potential patterns of
+    local adaptation. It does so by following the method LogAV, which estimates ancestral
+    variances through two different equations, one using within-population coancestry,
+    and another using between-population coancestry. LAVA has a function to calculate 
+    coancestry matrices which are necessary for estimating the ancestral variances.
 
 The LAVA package provides tools for analyzing the log ratio
 of ancestral variances. This package helps researchers analyze genomic data

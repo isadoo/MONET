@@ -38,12 +38,54 @@ knitr::opts_chunk$set(
 LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze quantitative trait data in order to test for local adaptation following the method LogAV. We do that by comparing estimates of ancestral variances. The package provides tools for statistical analysis for identifying local adaptation.
 
 ## Installation
+**Note:** This repository is currently private. If you have access to the repository (as a contributor or invited collaborator), you can install LAVA using the methods below.
 
-You can install the development version of LAVA from [GitHub](https://github.com/) with:
+### For Contributors and Collaborators with GitHub Access
+If you're a contributor or have been granted access to the private repository, the easiest way is to set up your GitHub credentials once, then install normally:
+
+#### Step 1: Set up GitHub authentication (one-time setup)
 
 ```r
+# Install gitcreds if you haven't already
+install.packages("gitcreds")
+# Set your credentials - you'll be prompted to enter your GitHub PAT
+gitcreds::gitcreds_set()
+```
+
+#### Step 2: Install LAVA
+
+```r
+# Install pak if you haven't already
+
 # install.packages("pak")
+
+# Now you can install LAVA
 pak::pak("isadoo/LAVA")
+
+# or
+# pak::pak("isadoo/LAVA", git_auth_token = "YOUR_GITHUB_PAT_HERE")
+
+# Or using remotes
+# install.packages("remotes")
+# remotes::install_github("isadoo/LAVA")
+```
+
+### For Contributors: Development Installation
+If you're actively developing LAVA, you may want to clone the repository and install locally:
+
+```r
+# Clone the repository first (in your terminal)
+
+# git clone https://github.com/isadoo/LAVA.git
+# cd LAVA
+
+# Then in R, install with dependencies
+
+pak::pak(".", dependencies = TRUE)
+
+# Or using remotes
+# remotes::install_local(".", dependencies = TRUE)
+
 ```
 
 ## Example
