@@ -58,6 +58,19 @@ then install normally:
 ``` r
 # Install gitcreds if you haven't already
 install.packages("gitcreds")
+```
+
+##### To create GitHub PAT:
+
+1.  Go to GitHub.com \> Settings \> Developer Settings.
+2.  Click “Personal access tokens” → Tokens (classic) or Fine-grained
+    tokens.
+3.  Click “Generate new token”
+4.  Select the expiration date and scopes (e.g., repo, workflow, user,
+    gist)
+5.  Click Generate token.
+
+``` r
 # Set your credentials - you'll be prompted to enter your GitHub PAT
 gitcreds::gitcreds_set()
 ```
@@ -99,7 +112,7 @@ pak::pak(".", dependencies = TRUE)
 # remotes::install_local(".", dependencies = TRUE)
 ```
 
-## Example
+## Example (needs to be updated)
 
 This is a basic example which shows you how to use LAVA:
 
