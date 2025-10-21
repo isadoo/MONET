@@ -1,10 +1,10 @@
-###########################################################################
 #' @title lava: Log ratios of ancestral variances
 #'
 #' @description Given coancestry matrices for between and within populations and a trait data frame, 
 #' this function estimates the log ratio of ancestral variances using a Bayesian mixed-effects model.
 #' 
-#' @usage lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", ...)
+#' @usage lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", 
+#'             column_population = "population", formula_covariates = NULL, ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
 #'
@@ -16,17 +16,19 @@
 #' @param column_individual The name of the column containing individual IDs. Default is "id".
 #'
 #' @param column_trait The name of the column containing trait values. Default is "trait".
-#' 
-#' @param formula A formula specifying the model structure. Default is 
 #'
+#' @param column_population The name of the column containing population IDs. Default is "population".
+#'
+#' @param formula_covariates A character string specifying additional covariates to include in the model.
+#' For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).
+#' 
 #' @param ... Additional arguments passed to the brms function.
 #'
 #' @return A lava type object containing:
 #' \item{posterior_samples}{A list with posterior samples of variance components and residuals.}
 #' \item{log_ratio}{A list with the p-value of the log ratios, the mean of the log ratio of between- and within-population variance, and confidence intervals.}
-#' \item{model}{as an atribute.}
-#'
-#'
+#' \item{model}{as an attribute.}
+#' 
 #' @details This function standardizes trait data, constructs a Bayesian mixed-effects model 
 #' using `brms`, and estimates ancestral variances. The function assumes no crosses between populations 
 #' and analyzes one trait at a time.
@@ -40,11 +42,15 @@
 #'
 #' @export
 lava <- function(Theta.P, 
-                The.M, 
-                trait_dataframe, 
-                column_individual = "id", 
-                column_trait = "trait", 
-                formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))", ...) {
+                 The.M, 
+                 trait_dataframe, 
+                 column_individual = "id", 
+                 column_trait = "trait", 
+                 column_population = "population",
+                 formula_covariates = NULL,
+                 iter = 5000, warmup = 2000, thin = 2,
+                 save_full_model = FALSE,
+                 ...) {
   
   #check input types and dimensions ------------------------
   if (!is.matrix(Theta.P) || !is.matrix(The.M)) {
@@ -55,222 +61,255 @@ lava <- function(Theta.P,
     stop("trait_dataframe must be a data frame with at least two columns (ID and trait values).")
   }
   #------------------------------------------------------------
-
-
+  
   #extract columns by name if provided ------------------------------------
   id_col <- if(is.numeric(column_individual)) column_individual else which(names(trait_dataframe) == column_individual)
   trait_col <- if(is.numeric(column_trait)) column_trait else which(names(trait_dataframe) == column_trait)
-
+  
   #Identify populations per individual
   population_blocks_df <- counting_blocks_matrix(The.M) #this function counts the number of blocks of non-zero rows in a matrix
   individuals_per_population_F1 <- population_blocks_df$rows
   number_of_blocks <- length(population_blocks_df$block) 
   pop_ids <- rep(1:number_of_blocks, individuals_per_population_F1[1:number_of_blocks]) 
   number_populations <- nrow(Theta.P)
-
   
-  if (number_of_blocks != number_populations) {
-    warning(paste0("Mismatch between detected populations based on The.M matrix (", number_of_blocks,") and Theta.P dimensions (", number_populations, ")."))
+  if (number_of_blocks != number_populations & !(column_population %in% names(trait_dataframe))) {
+    warning(paste0("Mismatch between detected groups based on The.M matrix (", number_of_blocks,") and populations in Theta.P dimensions (", number_populations, ")\n
+                   We have have no way of knowing what is the correct number of individuals in each subpopulation."))
   }
   
-  #Standardize trait data
   Y <- trait_dataframe[,trait_col]
+  
+  if (is.list(Y)) {
+    Y <- unlist(Y)
+  }
+  
+  #Ensure Y is numeric
+  Y <- as.numeric(Y)
+  
+  #remove any NAs
+  valid_indices <- !is.na(Y)
+  Y <- Y[valid_indices]
+  
+  #Filter the dataframe to match
+  trait_dataframe <- trait_dataframe[valid_indices, ]
+  
+  # Standardize
   Y <- Y - mean(Y)
   var_Y <- var(Y)
   Y <- Y / sqrt(var_Y)
   
-  #labels
-  row.names(Theta.P) <- colnames(Theta.P) <- paste("pop", 1:number_populations, sep = "_")
-  row.names(The.M) <- colnames(The.M) <- trait_dataframe[,id_col]
-  
   #From VB = VA*2FST
   two.Theta.P <- 2 * Theta.P
+  
+  pop_col <- if(column_population %in% names(trait_dataframe)) {
+    trait_dataframe[,column_population]
+  } else {
+    paste0("pop_", pop_ids)  # fallback to generated pop labels
+  }
+  
+  if (is.list(pop_col)) {
+    pop_col <- unlist(pop_col)
+  }
+  pop_col <- as.character(pop_col)
+  
+  ind_col <- trait_dataframe[,id_col]
+  if (is.list(ind_col)) {
+    ind_col <- unlist(ind_col)
+  }
+  ind_col <- as.character(ind_col)
 
-  pop_labels <- paste0("pop_", pop_ids)
+  #Build the data frame
+  dat <- data.frame(pop = pop_col, ind = ind_col, Y = Y)
 
-  dat <- data.frame(pop = pop_labels, ind = trait_dataframe[,id_col], Y = Y)
+  # Add any additional covariates that might be specified
+  if (!is.null(formula_covariates)) {
+    # Extract covariate names from formula_covariates
+    covariate_names <- trimws(unlist(strsplit(formula_covariates, "\\+")))
+    
+    # Add covariates to the data frame if they exist in trait_dataframe
+    for (cov_name in covariate_names) {
+      if (cov_name %in% names(trait_dataframe)) {
+        cov_data <- trait_dataframe[,cov_name]
+        if (is.list(cov_data)) {
+          cov_data <- unlist(cov_data)
+        }
+        dat[[cov_name]] <- cov_data
+      } else {
+        warning(paste("Covariate", cov_name, "not found in trait_dataframe"))
+      }
+    }
+  }
+  
+  #Build the complete formula
+  base_formula <- "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))"
+  
+  if (!is.null(formula_covariates)) {
+    formula_string <- paste0("Y ~ 1 + ", formula_covariates, " + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))")
+  } else {
+    formula_string <- base_formula
+  }
+  
+  model_formula <- as.formula(formula_string)
+  
+  cat("Using formula:", formula_string, "\n")
+  
+  #Diagnostics
+  n_total <- nrow(dat)
+  n_complete <- sum(complete.cases(dat))
+  cat("Total rows:", n_total, " ; complete rows used:", n_complete, "\n")
+  
+  #check for NAs
+  na_counts <- colSums(is.na(dat))
+  if (any(na_counts > 0)) {
+    cat("Warning: NAs found in columns:\n")
+    print(na_counts[na_counts > 0])
+  }
+  
+  #Priors
+  priors <- c(
+    prior(student_t(3, 0, 2.5), class = "sd"),    # group-level sd
+    prior(student_t(3, 0, 2.5), class = "sigma"), # residual sd
+    prior(normal(0, 1), class = "b")              # fixed effects (if you have covariates)
+  )
   
   #Bayesian model - using brms package
-  brms_mf <- brm(formula = formula, 
-                 data = dat, data2 = list(two.Theta.P = two.Theta.P, The.M = The.M), 
-                 family = gaussian(), chains = 8, cores = 4, iter = 3000, warmup = 1000, thin = 2, ...)
+  #Use tryCatch to handle convergence issues gracefully
+  brms_mf <- tryCatch({
+    brm(
+      formula = model_formula,
+      data = dat,
+      data2 = list(two.Theta.P = two.Theta.P, The.M = The.M),
+      prior = priors, 
+      iter = iter, warmup = warmup, thin = thin,
+      ...
+    )
+
+  }, error = function(e) {
+    cat("Error fitting model:", e$message, "\n")
+    stop(e)
+  })
+  
+  # Print summary properly
+  cat("\n=== Model Summary ===\n")
+  print(summary(brms_mf))
+  cat("\n")
+  
+  # Check for convergence issues
+  rhats <- rhat(brms_mf)
+  if (any(rhats > 1.01, na.rm = TRUE)) {
+    warning("Some Rhat values > 1.01, indicating potential convergence issues")
+  }
+  
+  # Check for divergent transitions
+  sampler_params <- nuts_params(brms_mf)
+  n_divergent <- sum(sampler_params$divergent__)
+  if (n_divergent > 0) {
+    warning(paste("Model had", n_divergent, "divergent transitions after warmup"))
+  }
   
   #variance components
   var_components <- lapply(VarCorr(brms_mf, summary = FALSE), function(x) x$sd^2)
   var_df <- as.data.frame(do.call(cbind, var_components))
-  
-  quant_med <- quantile(var_df$pop - var_df$ind, c(0.5, 0.025, 0.975))
-  mean_diff <- mean(var_df$pop - var_df$ind)
-  
-  #Hypothesis testing
+
   hyp <- "sd_pop__Intercept^2 - sd_ind__Intercept^2 = 0"
   the_hyp <- hypothesis(brms_mf, hyp, class = NULL)
-  
-  #Posteriors: VA,B and VA,A - estimated ancestral variances
-  post_samples <- as_draws_df(brms_mf, variable = c("sd_pop__Intercept", "sd_ind__Intercept"))
-  post_samples$log_ratio <- log(post_samples$sd_pop__Intercept^2 / post_samples$sd_ind__Intercept^2)
-  
-  mean_log_ratio <- mean(post_samples$log_ratio)
-  quant_log_ratio <- quantile(post_samples$log_ratio, probs = c(0.025, 0.975))
-  
-  
-  p_value <- 2 * mean(sign(post_samples$log_ratio) != sign(median(post_samples$log_ratio)))
-  
-  #S3 object of class "lava"
-  results <- list(
-    posteriors_samples = post_samples,
-    
-    #log ratio statistics together
-    log_ratio = list(
-      p_value = p_value,
-      mean_log_ratio = mean_log_ratio,
-      log_ratio_ci_lower = quant_log_ratio[1],
-      log_ratio_ci_upper = quant_log_ratio[2]
-    ),
-    
-    
-    hypothesis = the_hyp$hypothesis[2:5],
-    
-    trait_name = names(trait_dataframe)[trait_col]
-  )
-  
-  #Setting the class attribute to create an S3 object
- attr(results, "model") <- brms_mf
- class(results) <- "lava"
-  
-  return(results)
+
+  # --- core draws we need ---
+  # Get all draws once, then select columns we care about depending on save_full_model
+  all_draws <- posterior::as_draws_df(brms_mf)
+
+fe_cols <- grep("^b_", names(all_draws), value = TRUE)     # fixed effects
+sd_cols <- c("sd_pop__Intercept", "sd_ind__Intercept")     # two RE SDs
+
+have_sd <- sd_cols[sd_cols %in% names(all_draws)]
+
+if (length(have_sd) == 2) {
+  minimal_samples <- all_draws[, unique(c(fe_cols, have_sd)), drop = FALSE]
+  minimal_samples$var_pop  <- minimal_samples$sd_pop__Intercept^2
+  minimal_samples$var_ind  <- minimal_samples$sd_ind__Intercept^2
+  minimal_samples$log_ratio <- log(minimal_samples$var_pop / minimal_samples$var_ind)
+} else {
+  warning("Issue with your model - to use lava you should get a sd_pop__Intercept and sd_ind__Intercept in draws in order to have a log-ratio; minimal samples include only fixed effects.")
 }
 
-#Defining print method for the lava S3 object
-#' @export
-#' @method print lava
-print.lava <- function(x, ...) {
-  #header
-  cat("\n===============================\n")
-  cat("Log Ancestral Variance Analysis (LAVA)\n")
-  cat("===============================\n\n")
-  
-  #key findings
-  cat("Log ratio of estimated ancestral variances (between equation/ within equation):\n")
-  cat(sprintf("  Mean: %.4f (95%% CI: %.4f to %.4f)\n", 
-              x$log_ratio$mean_log_ratio, 
-              x$log_ratio$log_ratio_ci_lower, 
-              x$log_ratio$log_ratio_ci_upper))
-  
-  cat("\nStatistical tests:\n")
-  cat(sprintf("  Hypothesis test p-value: %.4f\n", x$log_ratio$p_value))
-  
-  cat("\n===============================\n")
-  
-  #~~invisible return~~
-  invisible(x)
-}
+  # For summary stats below we still use post_samples with log_ratio
+  post_samples <- minimal_samples
 
-
-#plotting method for lava S3 object
-#' @export
-#' @method plot lava
-plot.lava <- function(x, which = "both", 
-                     main_density = "Posterior Distribution of Log Ratio of Ancestral Variances",
-                     main_scatter = "Posterior Samples of Variance Components",
-                     ...) {
-  
-  #check if we print just one of the plots - 'both' is the default
-  which <- match.arg(which, choices = c("both", "density", "scatter"))
-  
-  #setting up the figure layout
-  if (which == "both") {
-    old_par <- par(mfrow = c(2, 1), mar = c(4, 4, 3, 2))
-    on.exit(par(old_par))  # Restore original parameters when function exits
+  # --- summaries of log-ratio ---
+  if ("log_ratio" %in% names(post_samples)) {
+    quant_log_med   <- stats::quantile(post_samples$log_ratio, c(0.5, 0.025, 0.975))
+    mean_log_ratio  <- mean(post_samples$log_ratio)
+    quant_log_ratio <- stats::quantile(post_samples$log_ratio, probs = c(0.025, 0.975))
+    p_value <- 2 * mean(sign(post_samples$log_ratio) != sign(stats::median(post_samples$log_ratio)))
   } else {
-    old_par <- par(mar = c(4, 4, 3, 2))
-    on.exit(par(old_par))
+    warning("No log_ratio samples found - cannot compute log-ratio summaries.")
   }
-  
-  #plot the density function ------------------------------------
-  plot_density <- function() {
-    log_ratio <- x$post_samples$log_ratio
-    
-    
-    dens <- density(log_ratio)
-    
-    
-    plot(dens, main = main_density,
-         xlab = "Log Ratio (Between-population / Within-population)",
-         ylab = "Density", col = "blue", lwd = 2)
-    
-    #pretty shading
-    polygon(c(dens$x, rev(dens$x)), c(dens$y, rep(0, length(dens$y))), 
-            col = rgb(0, 0, 1, 0.3), border = NA)
-    
-    #reference line at 0 (equal variances)
-    abline(v = 0, lty = 2, col = "red", lwd = 2)
-    
-    
-    legend("topright", 
-           legend = c("Density", "Equal variances", "Mean", "95% CI"),
-           lty = c(1, 2, 1, 3), 
-           col = c("blue", "red", "darkblue", "darkblue"),
-           lwd = c(2, 2, 2, 1.5),
-           bty = "n")
-  }
-  
-  #scatter function ------------------------------------
-  plot_scatter <- function() {
-    between_var <- x$post_samples$between_pop_variance
-    within_var <- x$post_samples$within_pop_variance
-    
-    
-    xlim <- ylim <- range(c(between_var, within_var))
-    
-    
-    plot(within_var, between_var, 
-         main = main_scatter,
-         xlab = "Within-population Variance", 
-         ylab = "Between-population Variance",
-         pch = 16, col = rgb(0, 0, 1, 0.3),
-         xlim = xlim, ylim = ylim)
-    
-    #equality line (1:1)
-    abline(0, 1, lty = 2, col = "red", lwd = 2)
-    
-    #mean point
-    points(mean(within_var), mean(between_var), 
-           pch = 16, col = "darkred", cex = 1.5)
-    
-    #legend
-    legend("topleft", 
-           legend = c("Posterior samples", "Equal variances", "Mean"),
-           pch = c(16, NA, 16), 
-           lty = c(NA, 2, NA),
-           col = c(rgb(0, 0, 1, 0.3), "red", "darkred"),
-           lwd = c(NA, 2, NA),
-           pt.cex = c(1, NA, 1.5),
-           bty = "n")
-  }
-  
-  #plotting only what was asked
-  if (which == "density" || which == "both") {
-    plot_density()
-  }
-  
-  if (which == "scatter" || which == "both") {
-    plot_scatter()
-  }
-  
-  invisible(x)
+
+  # ----------------------------
+      # preparing results object #
+  # ----------------------------
+  results <- list(
+  sampling = if (isTRUE(save_full_model)) {
+    # Return the full brms model as 'sampling'
+    brms_mf
+  } else {
+    # Minimal sampling: fixed effects + two RE SDs + var_* + log_ratio
+    minimal_samples
+  },
+
+  log_ratio = list(
+    p_value = p_value,
+    mean_log_ratio = mean_log_ratio,
+    log_ratio_ci_lower = quant_log_ratio[1],
+    log_ratio_ci_upper = quant_log_ratio[2],
+    median_log_ratio = quant_log_med["50%"],
+    ci_median_lower = quant_log_med["2.5%"],
+    ci_median_upper = quant_log_med["97.5%"]
+  ),
+
+  hypothesis = the_hyp$hypothesis[2:5],
+  trait_name = names(trait_dataframe)[trait_col],
+  formula_used = formula_string,
+  convergence = list(
+    n_divergent = n_divergent,
+    max_rhat = max(rhats, na.rm = TRUE)
+  )
+)
+class(results) <- "lava"
+return(results)
 }
+#' @export
+plot.lava <- function(x, ...) {
+  # Accept either a brmsfit (full model) or a draws data.frame in x$sampling
+  if (inherits(x$sampling, "brmsfit")) {
+    # compute log_ratio from the model draws
+    draws <- posterior::as_draws_df(x$sampling)
+    if (!all(c("sd_pop__Intercept", "sd_ind__Intercept") %in% names(draws))) {
+      stop("Could not find sd_pop__Intercept/sd_ind__Intercept in model draws to compute log_ratio.")
+    }
+    lr <- log((draws$sd_pop__Intercept^2) / (draws$sd_ind__Intercept^2))
+  } else {
+    samp <- x$sampling
+    if (is.null(samp) || !"log_ratio" %in% names(samp)) {
+      stop("No 'log_ratio' samples found. Refit or set save_full_model=TRUE so draws are available.")
+    }
+    lr <- samp$log_ratio
+  }
 
-print.lava(results)
+  med <- stats::median(lr)
+  ci  <- stats::quantile(lr, c(0.025, 0.975))
 
-#===============================
-#Log Ancestral Variance Analysis (LAVA)
-#===============================
+  
+  d <- stats::density(lr)
+  plot(d, main = "Posterior of log-ratio",
+    xlab = "log(Var_between / Var_within)", ylab = "Posterior density")
+    abline(v = med, lty = 2)
+    abline(v = ci, lty = 3)
+    legend("topright",
+        legend = c(paste0("median = ", round(med, 3)),
+                    paste0("95% CI [", round(ci[1], 3), ", ", round(ci[2], 3), "]")),
+        lty = c(2, 3), bty = "n")
 
-#Log ratio of estimated ancestral variances (between equation/ within equation):
-#  Mean: 0.8403 (95% CI: -0.0496 to 1.8339)
-
-#Statistical tests:
-#  Hypothesis test p-value: 0.0635
-
-#===============================
+  invisible(NULL)
+}
