@@ -71,31 +71,103 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze genomic data through the lens of ancestral variance ratios. The package provides tools for statistical analysis and visualization of evolutionary patterns.</p>
+<p>LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze quantitative trait data in order to test for local adaptation following the method LogAV. We do that by comparing estimates of ancestral variances. The package provides tools for statistical analysis for identifying local adaptation.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of LAVA from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
+<p><strong>Note:</strong> This repository is currently private. If you have access to the repository (as a contributor or invited collaborator), you can install LAVA using the methods below.</p>
+<div class="section level3">
+<h3 id="for-contributors-and-collaborators-with-github-access">For Contributors and Collaborators with GitHub Access<a class="anchor" aria-label="anchor" href="#for-contributors-and-collaborators-with-github-access"></a>
+</h3>
+<p>If you’re a contributor or have been granted access to the private repository, the easiest way is to set up your GitHub credentials once, then install normally:</p>
+<div class="section level4">
+<h4 id="step-1-set-up-github-authentication-one-time-setup">Step 1: Set up GitHub authentication (one-time setup)<a class="anchor" aria-label="anchor" href="#step-1-set-up-github-authentication-one-time-setup"></a>
+</h4>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
-<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"isadoo/LAVA"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># Install gitcreds if you haven't already</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"gitcreds"</span><span class="op">)</span></span>
+<span><span class="co"># Set your credentials - you'll be prompted to enter your GitHub PAT</span></span>
+<span><span class="fu">gitcreds</span><span class="fu">::</span><span class="fu">gitcreds_set</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="step-2-install-lava">Step 2: Install LAVA<a class="anchor" aria-label="anchor" href="#step-2-install-lava"></a>
+</h4>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Install pak if you haven't already</span></span>
+<span></span>
+<span><span class="co"># install.packages("pak")</span></span>
+<span></span>
+<span><span class="co"># Now you can install LAVA</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"isadoo/LAVA"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># or</span></span>
+<span><span class="co"># pak::pak("isadoo/LAVA", git_auth_token = "YOUR_GITHUB_PAT_HERE")</span></span>
+<span></span>
+<span><span class="co"># Or using remotes</span></span>
+<span><span class="co"># install.packages("remotes")</span></span>
+<span><span class="co"># remotes::install_github("isadoo/LAVA")</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level3">
+<h3 id="for-contributors-development-installation">For Contributors: Development Installation<a class="anchor" aria-label="anchor" href="#for-contributors-development-installation"></a>
+</h3>
+<p>If you’re actively developing LAVA, you may want to clone the repository and install locally:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Clone the repository first (in your terminal)</span></span>
+<span></span>
+<span><span class="co"># git clone https://github.com/isadoo/LAVA.git</span></span>
+<span><span class="co"># cd LAVA</span></span>
+<span></span>
+<span><span class="co"># Then in R, install with dependencies</span></span>
+<span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"."</span>, dependencies <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or using remotes</span></span>
+<span><span class="co"># remotes::install_local(".", dependencies = TRUE)</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
 <p>This is a basic example which shows you how to use LAVA:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/isadoo/LAVA" class="external-link">LAVA</a></span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/isadoo/LAVA" class="external-link">LAVA</a></span><span class="op">)</span></span>
+<span><span class="va">coancestries</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/calculate_coancestries.html">calculate_coancestries</a></span><span class="op">(</span>genetic_data_parents <span class="op">=</span> <span class="va">dos_Founders</span>,</span>
+<span>                                              genotyped_parent_populations <span class="op">=</span> <span class="va">pop</span>,</span>
+<span>                                              genetic_data_F1 <span class="op">=</span> <span class="va">dos_F1</span>, </span>
+<span>                                              population_individual_id <span class="op">=</span> <span class="va">population_individual_id_df</span>,</span>
+<span>                                              column_individual <span class="op">=</span> <span class="st">"individual"</span>, </span>
+<span>                                              column_population <span class="op">=</span> <span class="st">"pop_id"</span><span class="op">)</span></span>
+<span><span class="va">results</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/lava.html">lava</a></span><span class="op">(</span><span class="va">Theta.P</span>, </span>
+<span>                <span class="va">The.M</span>, </span>
+<span>                trait_dataframe <span class="op">=</span> <span class="va">trait_df_pop</span>, </span>
+<span>                column_individual <span class="op">=</span> <span class="st">"individual"</span>, </span>
+<span>                column_trait <span class="op">=</span> <span class="st">"trait"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="features">Features<a class="anchor" aria-label="anchor" href="#features"></a>
+</h2>
+<p>The LAVA package provides:</p>
+<ul>
+<li>Analysis tools for estimated variance comparison</li>
+<li>Coancestry matrix calculator</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<p>For more detailed information, check …</p>
+<p>For more detailed information, please check …?.</p>
 </div>
 <div class="section level2">
-<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
+<h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
 </h2>
+<p>Contributions to LAVA are welcome! Please see our <a href="CONTRIBUTING.html">contributing guide</a> to get started.</p>
+</div>
+<div class="section level2">
+<h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
+</h2>
+<p>If you use LAVA in your research, please cite: [add citation for the two papers]</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
