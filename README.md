@@ -36,18 +36,67 @@ version](https://img.shields.io/badge/R%3E%3D-3.5-6666ff.svg)](https://cran.r-pr
 ## Overview
 
 LAVA (Log ratio of Ancestral Variances) is an R package designed to help
-researchers analyze genomic data through the lens of ancestral variance
-ratios. The package provides tools for statistical analysis and
-visualization of evolutionary patterns.
+researchers analyze quantitative trait data in order to test for local
+adaptation following the method LogAV. We do that by comparing estimates
+of ancestral variances. The package provides tools for statistical
+analysis for identifying local adaptation.
 
 ## Installation
 
-You can install the development version of LAVA from
-[GitHub](https://github.com/) with:
+**Note:** This repository is currently private. If you have access to
+the repository (as a contributor or invited collaborator), you can
+install LAVA using the methods below.
+
+### For Contributors and Collaborators with GitHub Access
+
+If you’re a contributor or have been granted access to the private
+repository, the easiest way is to set up your GitHub credentials once,
+then install normally:
+
+#### Step 1: Set up GitHub authentication (one-time setup)
 
 ``` r
+# Install gitcreds if you haven't already
+install.packages("gitcreds")
+# Set your credentials - you'll be prompted to enter your GitHub PAT
+gitcreds::gitcreds_set()
+```
+
+#### Step 2: Install LAVA
+
+``` r
+# Install pak if you haven't already
+
 # install.packages("pak")
+
+# Now you can install LAVA
 pak::pak("isadoo/LAVA")
+
+# or
+# pak::pak("isadoo/LAVA", git_auth_token = "YOUR_GITHUB_PAT_HERE")
+
+# Or using remotes
+# install.packages("remotes")
+# remotes::install_github("isadoo/LAVA")
+```
+
+### For Contributors: Development Installation
+
+If you’re actively developing LAVA, you may want to clone the repository
+and install locally:
+
+``` r
+# Clone the repository first (in your terminal)
+
+# git clone https://github.com/isadoo/LAVA.git
+# cd LAVA
+
+# Then in R, install with dependencies
+
+pak::pak(".", dependencies = TRUE)
+
+# Or using remotes
+# remotes::install_local(".", dependencies = TRUE)
 ```
 
 ## Example
@@ -56,13 +105,36 @@ This is a basic example which shows you how to use LAVA:
 
 ``` r
 library(LAVA)
-
+coancestries <- calculate_coancestries(genetic_data_parents = dos_Founders,
+                                              genotyped_parent_populations = pop,
+                                              genetic_data_F1 = dos_F1, 
+                                              population_individual_id = population_individual_id_df,
+                                              column_individual = "individual", 
+                                              column_population = "pop_id")
+results <- lava(Theta.P, 
+                The.M, 
+                trait_dataframe = trait_df_pop, 
+                column_individual = "individual", 
+                column_trait = "trait")
 ```
+
+## Features
+
+The LAVA package provides:
+
+- Analysis tools for estimated variance comparison
+- Coancestry matrix calculator
 
 ## Documentation
 
-For more detailed information, check ...
+For more detailed information, please check …?.
 
+## Contributing
 
-## License
+Contributions to LAVA are welcome! Please see our [contributing
+guide](.github/CONTRIBUTING.md) to get started.
 
+## Citation
+
+If you use LAVA in your research, please cite: \[add citation for the
+two papers\]
