@@ -49,7 +49,7 @@ lava <- function(Theta.P,
                  column_population = "population",
                  formula_covariates = NULL,
                  iter = 5000, warmup = 2000, thin = 2,
-                 save_full_model = FALSE,
+                 save_full_model = FALSE
                  ...) {
   
   #check input types and dimensions ------------------------
@@ -166,12 +166,6 @@ lava <- function(Theta.P,
     print(na_counts[na_counts > 0])
   }
   
-  #Priors
-  priors <- c(
-    prior(student_t(3, 0, 2.5), class = "sd"),    # group-level sd
-    prior(student_t(3, 0, 2.5), class = "sigma"), # residual sd
-    prior(normal(0, 1), class = "b")              # fixed effects (if you have covariates)
-  )
   
   #Bayesian model - using brms package
   #Use tryCatch to handle convergence issues gracefully
@@ -179,8 +173,7 @@ lava <- function(Theta.P,
     brm(
       formula = model_formula,
       data = dat,
-      data2 = list(two.Theta.P = two.Theta.P, The.M = The.M),
-      prior = priors, 
+      data2 = list(two.Theta.P = two.Theta.P, The.M = The.M), 
       iter = iter, warmup = warmup, thin = thin,
       ...
     )
