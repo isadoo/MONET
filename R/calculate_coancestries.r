@@ -58,10 +58,15 @@ calculate_coancestries <- function(genetic_data_parents,
 
     # Load F1 data and get kinship ------------------------------------------------------ 
     if (!identical(pedigree, NA)) {
-        kinship_F1 <- kinship_from_pedigree(pedigree) #internal function from package LAVA
-        #Make sure individuals are arranged by their naming, which ideally follows the population naming
-        #sorted_F1_names <- sort(rownames(kinship_F1))
-        #kinship_F1 <- kinship_F1[sorted_F1_names, sorted_F1_names]
+        # Use kinship2::kinship function
+        # The kinship2::kinship function returns kinship coefficients (values 0-0.5)
+        # We need to convert to a relatedness matrix (values 0-1) by multiplying by 2
+        kinship_F1_raw <- kinship2::kinship(id = pedigree$id, 
+                                             dadid = pedigree$sire, 
+                                             momid = pedigree$dam)
+        # Convert kinship coefficients to relatedness matrix and ensure proper format
+        kinship_F1 <- as.matrix(kinship_F1_raw * 2)
+        rownames(kinship_F1) <- colnames(kinship_F1) <- pedigree$id
 
         pop_ids_F1 <- pedigree$dam_pop
 

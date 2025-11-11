@@ -21,6 +21,10 @@ BugReports: https://github.com/isadoo/LAVA/issues
 Imports:
     brms,
     hierfstat,
+    kinship2,
+    JGTeach,
+    gaston,
+    Matrix,
     dplyr,
     tidyr,
     magrittr

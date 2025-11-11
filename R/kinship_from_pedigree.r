@@ -19,6 +19,9 @@
 #' @details The function computes kinship coefficients under the assumption of non-inbred founders.
 #' Half-sibling relationships (shared sire or dam) yield a coefficient of \eqn{\frac{1}{4}}. 
 #' If individuals share both parents (full siblings), their kinship coefficient is \eqn{\frac{1}{4} + \frac{1}{4} = \frac{1}{2}}.
+#' 
+#' Note: This function uses \code{kinship2::kinship()} internally and converts the kinship coefficients
+#' to a relatedness matrix by multiplying by 2.
 #'
 #' @examples
 #' # Create a simple pedigree
@@ -40,32 +43,16 @@
 #' @export
 kinship_from_pedigree <- function(pedigree) {
   
-  ids <- pedigree$id
-  num_individuals <- length(ids)
-  kinship_matrix <- matrix(0, nrow = num_individuals, ncol = num_individuals)
-  rownames(kinship_matrix) <- ids
-  colnames(kinship_matrix) <- ids
+  # Use kinship2::kinship function
+  # The kinship2::kinship function returns kinship coefficients (values 0-0.5)
+  # We need to convert to a relatedness matrix (values 0-1) by multiplying by 2
+  kinship_raw <- kinship2::kinship(id = pedigree$id, 
+                                    dadid = pedigree$sire, 
+                                    momid = pedigree$dam)
   
-  #Self-relatedness = 1 
-  diag(kinship_matrix) <- 1
-  
-  
-  for (i in seq_len(num_individuals)) {
-    for (j in seq_len(i - 1)) { 
-      sire_i <- pedigree$sire[i]
-      dam_i <- pedigree$dam[i]
-      sire_j <- pedigree$sire[j]
-      dam_j <- pedigree$dam[j]
-      
-      if (!is.na(sire_i) && !is.na(sire_j) && sire_i == sire_j) {
-        kinship_matrix[i, j] <- kinship_matrix[j, i] <- kinship_matrix[i, j] + (1/4) #half sib
-      }
-      if (!is.na(dam_i) && !is.na(dam_j) && dam_i == dam_j) {
-        kinship_matrix[i, j] <- kinship_matrix[j, i] <- kinship_matrix[i, j] + (1/4) #half sib
-      }
-      #If you're "halfsib" on both sides, then  you're full sib!
-    }
-  }
+  # Convert kinship coefficients to relatedness matrix
+  kinship_matrix <- as.matrix(kinship_raw * 2)
+  rownames(kinship_matrix) <- colnames(kinship_matrix) <- pedigree$id
   
   return(kinship_matrix)
 }

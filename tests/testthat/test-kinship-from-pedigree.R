@@ -22,8 +22,8 @@ test_that("kinship_from_pedigree calculates correct kinship coefficients", {
   
   # Check specific relationships
   expect_equal(kinship_matrix["P1", "P2"], 0)  # Unrelated founders
-  expect_equal(kinship_matrix["C1", "C2"], 0.5)  # Full siblings (1/4 + 1/4)
-  expect_equal(kinship_matrix["P1", "C1"], 0)  # Parent-offspring (should be 0 in this simple implementation)
+  expect_equal(kinship_matrix["C1", "C2"], 0.5)  # Full siblings
+  expect_equal(kinship_matrix["P1", "C1"], 0.5)  # Parent-offspring (kinship2 correctly calculates this)
   
   # Test case 2: Half siblings (same sire, different dam)
   pedigree_half_sibs <- data.frame(

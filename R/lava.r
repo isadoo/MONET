@@ -19,6 +19,9 @@
 #'
 #' @param column_population The name of the column containing population IDs. Default is "population".
 #'
+#' @param column_se The name of the column containing standard errors of trait values. Default is NULL (no SEs).
+#' If provided, the function will incorporate measurement error in the model.
+#' 
 #' @param formula_covariates A character string specifying additional covariates to include in the model.
 #' For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).
 #' 
@@ -47,9 +50,10 @@ lava <- function(Theta.P,
                  column_individual = "id", 
                  column_trait = "trait", 
                  column_population = "population",
+                 column_se = NULL,
                  formula_covariates = NULL,
                  iter = 5000, warmup = 2000, thin = 2,
-                 save_full_model = FALSE
+                 save_full_model = FALSE,
                  ...) {
   
   #check input types and dimensions ------------------------
@@ -99,6 +103,13 @@ lava <- function(Theta.P,
   var_Y <- var(Y)
   Y <- Y / sqrt(var_Y)
   
+  have_se <- !is.null(column_se) && (column_se %in% names(trait_dataframe))
+  #Incorportate measurment errors (se) if provided
+  if (have_se) {
+    Y_se <- trait_dataframe[[column_se]] / sqrt(var_Y)
+  }
+
+
   #From VB = VA*2FST
   two.Theta.P <- 2 * Theta.P
   
@@ -121,6 +132,7 @@ lava <- function(Theta.P,
 
   #Build the data frame
   dat <- data.frame(pop = pop_col, ind = ind_col, Y = Y)
+  if (have_se) dat$Y_se <- Y_se
 
   # Add any additional covariates that might be specified
   if (!is.null(formula_covariates)) {
@@ -143,7 +155,17 @@ lava <- function(Theta.P,
   
   #Build the complete formula
   base_formula <- "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))"
-  
+  base_rhs <- "(1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))"
+  rhs <- if (is.null(formula_covariates)) base_rhs else paste0(formula_covariates, " + ", base_rhs)
+
+  if (have_se) {
+    # Use measurement error on the response; still estimate residual sigma
+    model_formula <- brms::bf(as.formula(paste0("Y | se(Y_se, sigma = TRUE) ~ 1 + ", rhs)))
+    cat("Measurement SE column: ", column_se, " (scaled to standardized Y)\n", sep = "")
+  } else {
+    model_formula <- as.formula(paste0("Y ~ 1 + ", rhs))
+  }
+
   if (!is.null(formula_covariates)) {
     formula_string <- paste0("Y ~ 1 + ", formula_covariates, " + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))")
   } else {
