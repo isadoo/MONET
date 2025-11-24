@@ -75,7 +75,7 @@ calculate_coancestries <- function(genetic_data_parents,
         F1_dosage <- genetic_data_F1
        
         matching_matrix_F1 <- hierfstat::matching(F1_dosage) 
-        kinship_F1 <- hierfstat::beta.dosage(matching_matrix_F1, MATCHING = TRUE)
+        kinship_F1 <- hierfstat::beta.dosage(matching_matrix_F1, matching = TRUE)
         F1_id <- population_individual_id[,column_individual]
     } else {
         stop("Missing F1 data, either include pedigree or genetic data")
@@ -152,7 +152,7 @@ calculate_coancestries <- function(genetic_data_parents,
     #Theta_P calculation -----------------------------------------------------
     #Matching matrix and kinship for parents
     matching_matrix_parents <- hierfstat::matching(parent_dosage)
-    kinship_parents <- hierfstat::beta.dosage(matching_matrix_parents, MATCHING = TRUE)
+    kinship_parents <- hierfstat::beta.dosage(matching_matrix_parents, matching = TRUE)
     fst_founders <- hierfstat::fs.dosage(matching_matrix_parents, pop = parent_pop_id, matching = TRUE)
 
     cat("Calculating Theta.P \n")
