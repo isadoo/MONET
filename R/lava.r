@@ -211,13 +211,13 @@ lava <- function(Theta.P,
   cat("\n")
   
   # Check for convergence issues
-  rhats <- rhat(brms_mf)
+  rhats <- brms::rhat(brms_mf)
   if (any(rhats > 1.01, na.rm = TRUE)) {
     warning("Some Rhat values > 1.01, indicating potential convergence issues")
   }
   
   # Check for divergent transitions
-  sampler_params <- nuts_params(brms_mf)
+  sampler_params <- brms::nuts_params(brms_mf)
   n_divergent <- sum(sampler_params$divergent__)
   if (n_divergent > 0) {
     warning(paste("Model had", n_divergent, "divergent transitions after warmup"))

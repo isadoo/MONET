@@ -168,7 +168,7 @@ head(population_ind)
 \subsection{Step 2: Calculate Coancestries}
 
 \begin{lstlisting}
-# Extract population IDs for parents
+# get population IDs for parents
 parent_populations <- genetic_data_parents$pop_id
 
 # Calculate coancestry matrices
@@ -185,7 +185,7 @@ coancestries <- calculate_coancestries(
 Theta.P <- coancestries$Theta.P
 The.M <- coancestries$The.M
 
-# Examine matrix properties
+# Confirming matrices dimensions
 dim(Theta.P)  # Should be n_populations x n_populations
 dim(The.M)    # Should be n_individuals x n_individuals
 \end{lstlisting}
@@ -212,14 +212,102 @@ print(result)
 # Plot posterior distributions
 plot(result, which = "both")
 
-# Extract key statistics
+# Extractstatistics
 cat("Mean log ratio:", result$log_ratio$mean_log_ratio, "\n")
 cat("P-value:", result$log_ratio$p_value, "\n")
 cat("95% CI:", result$log_ratio$log_ratio_ci_lower, 
     "to", result$log_ratio$log_ratio_ci_upper, "\n")
 \end{lstlisting}
 
-\section{Tutorial: 18 population Stepping stones}
+\section{Workflow Overview}
+
+LAVA follows a straightforward workflow:
+
+\begin{enumerate}
+\item \textbf{Prepare Data}: Organize genetic markers, phenotypes, and population information
+\item \textbf{Calculate Coancestries}: Compute $\Theta_P$ (population-level) and $M$ (individual-level) matrices
+\item \textbf{Run Analysis}: Fit the mixed model and estimate ancestral variances
+\item \textbf{Interpret Results}: Evaluate evidence for local adaptation
+\end{enumerate}
+
+The following sections provide parameter descriptions (\S\ref{sec:parameters}) and a complete tutorial with example data (\S\ref{sec:tutorial}).
+
+\section{Function Reference}
+\label{sec:parameters}
+
+\subsection{calculate\_coancestries()}
+
+Computes the coancestry matrices required for LAVA.
+
+\begin{lstlisting}
+calculate_coancestries(genetic_data_parents,
+                       genotyped_parent_populations, 
+                       genetic_data_F1 = NA, 
+                       population_individual_id = NA, 
+                       column_individual = "id", 
+                       column_population = "population_id", 
+                       pedigree = NA,
+                       all_parents_genotyped = FALSE)
+\end{lstlisting}
+
+\textbf{Parameters:}
+
+\begin{itemize}
+    \item \texttt{genetic\_data\_parents}: Matrix or data frame of genetic data (dosage format: 0, 1, 2) for the parental/founder generation. Individuals in rows, loci in columns.
+    
+    \item \texttt{genotyped\_parent\_populations}: Vector of population IDs corresponding to rows in \texttt{genetic\_data\_parents}.
+    
+    \item \texttt{genetic\_data\_F1}: (Optional) Genetic data for F1 generation in dosage format. Default \texttt{NA}.
+    
+    \item \texttt{population\_individual\_id}: (Optional) Data frame mapping individuals to populations, with columns specified by \texttt{column\_individual} and \texttt{column\_population}. Default \texttt{NA}.
+    
+    \item \texttt{column\_individual}: Column name for individual IDs in \texttt{population\_individual\_id}. Default \texttt{"id"}.
+    
+    \item \texttt{column\_population}: Column name for population IDs in \texttt{population\_individual\_id}. Default \texttt{"population\_id"}.
+    
+    \item \texttt{pedigree}: (Optional) Data frame with columns for individual ID, dam ID, and sire ID. Default \texttt{NA}.
+    
+    \item \texttt{all\_parents\_genotyped}: Logical; \texttt{TRUE} if genotyped individuals are the direct parents of F1. Default \texttt{FALSE}.
+\end{itemize}
+
+\textbf{Returns:} List with components \texttt{Theta.P} (population coancestry matrix) and \texttt{The.M} (individual relatedness matrix).
+
+\subsection{lava()}
+
+Performs the LogAV analysis to test for local adaptation.
+
+\begin{lstlisting}
+lava(Theta.P, 
+     The.M, 
+     trait_dataframe, 
+     column_individual = "id", 
+     column_trait = "trait", 
+     formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))", 
+     ...)
+\end{lstlisting}
+
+\textbf{Parameters:}
+
+\begin{itemize}
+    \item \texttt{Theta.P}: Square matrix of population coancestries (from \texttt{calculate\_coancestries()}).
+    
+    \item \texttt{The.M}: Square matrix of individual relatedness (from \texttt{calculate\_coancestries()}).
+    
+    \item \texttt{trait\_dataframe}: Data frame with individual IDs and trait values.
+    
+    \item \texttt{column\_individual}: Column name for individual IDs. Default \texttt{"id"}.
+    
+    \item \texttt{column\_trait}: Column name for trait values. Default \texttt{"trait"}.
+    
+    \item \texttt{formula}: Model formula for \texttt{brms}. Default fits the standard LAVA model.
+    
+    \item \texttt{...}: Additional arguments passed to \texttt{brms::brm()} (e.g., \texttt{iter}, \texttt{chains}, \texttt{prior}).
+\end{itemize}
+
+\textbf{Returns:} LAVA results object with log ratio estimates, credible intervals, and p-values. The fitted \texttt{brms} model is stored as an attribute.
+
+\section{Tutorial: 18 Population Stepping Stones}
+\label{sec:tutorial}
 Here we show a step by step example of how to run lava on a simple simulated data set.
 
 \subsection{Quick description of our example}
@@ -239,91 +327,109 @@ The example dataset comes from a simulated metapopulation:
   \begin{itemize}
   \item 100 quantitative trait loci (QTLs)
   \item Effect size: 0.1 per allele
-  \item heritability: $h^2_e = 0.8$
+  \item heritability: $h^2 = 0.8$
   \item Trait centered and standardized
   \end{itemize}
 \end{itemize}
 
-
-
-\subsection{Step 1: Getting the genetic data to dosages}
+\subsection{Step 1: Loading genetic data}
 \begin{lstlisting}
 # Read data from package example files
-neutral_file <- system.file("extdata", "neutral_data_g3000.dat", package = "LAVA")
-quanti_file <- system.file("extdata", "quanti_trait_g3000.dat", package = "LAVA")
+neutral_file <- system.file("extdata", "neutral_data_g3000.dat", 
+                            package = "LAVA")
+quanti_file <- system.file("extdata", "quanti_trait_g3000.dat", 
+                           package = "LAVA")
 
 # Read the genetic data using hierfstat
 sim <- hierfstat::read.fstat(fname = neutral_file)
+head(sim[,1:10])
+# Pop n1_l1 n1_l2 n1_l3 n1_l4 n1_l5 n1_l6 n1_l7 n1_l8 n1_l9
+# 1   1    22    11    21    11    22    11    11    22    11
+# 2   1    22    11    11    11    21    11    12    22    11
+# 3   1    22    11    22    11    22    22    11    22    11
+# 4   1    22    11    11    11    11    21    12    22    11
+# 5   1    22    11    11    11    11    11    11    22    11
+# 6   1    22    11    11    11    21    11    11    22    11
+
 sim_quanti <- hierfstat::read.fstat(fname = quanti_file)
+# head(sim_quanti[,1:10])
+#   Pop q1_l1 q1_l2 q1_l3 q1_l4 q1_l5 q1_l6 q1_l7 q1_l8 q1_l9
+# 1   1    22    11    22    22    11    22    12    22    22
+# 2   1    22    11    21    21    11    22    11    11    22
+# 3   1    22    11    22    22    11    22    22    22    22
+# 4   1    22    11    22    11    11    22    21    11    22
+# 5   1    12    11    22    22    11    22    12    11    22
+# 6   1    22    11    22    21    11    22    22    11    22
+\end{lstlisting}
 
-# Examine the data structure
-head(sim)
-sim[1:5, 1:5]
-#    Pop n1_l1 n1_l2 n1_l3 n1_l4
-# 1   1    22    11    21    11
-# 2   1    22    11    11    11
-# 3   1    22    11    22    11
-# 4   1    22    11    11    11
-# 5   1    22    11    11    11
-
-# Convert biallelic data to dosage format
+\subsection{Step 2: Converting to dosage format}
+\begin{lstlisting}
+# Convert biallelic data to dosage format (0, 1, 2)
 dos <- hierfstat::biall2dos(sim[, -1])  # Remove population column
-dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1], diploid = TRUE)
+head(dos[,1:5])
+#      n1_l1 n1_l2 n1_l3 n1_l4 n1_l5
+# [1,]     2     0     1     0     2
+# [2,]     2     0     0     0     1
+# [3,]     2     0     2     0     2
+# [4,]     2     0     0     0     0
+# [5,]     2     0     0     0     0
+# [6,]     2     0     0     0     1
 
-# Extract population IDs
-pop <- sim$Pop
-
-# Examine dosage output
-dos_quanti[1:5, 1:5]
-#        q1_l1 q1_l2 q1_l3 q1_l4 q1_l5
+dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1])
+head(dos_quanti[,1:5])
+#      q1_l1 q1_l2 q1_l3 q1_l4 q1_l5
 # [1,]     2     0     2     2     0
 # [2,]     2     0     1     1     0
 # [3,]     2     0     2     2     0
 # [4,]     2     0     2     0     0
 # [5,]     1     0     2     2     0
+# [6,]     2     0     2     1     0
 
-# Load F1 ("common gardens" population) dosages
+# Extract population IDs
+pop <- sim$Pop
+
+# Load F1 (common garden population) dosages
 dos_F1only_neutral <- readRDS(
-  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "LAVA")
+  system.file("extdata", "vignette_dos_F1only_neutral.rds", 
+              package = "LAVA")
 )
-
 \end{lstlisting}
 
-\subsection{Step 2: Loading trait data and population identification}
+\subsection{Step 3: Loading trait data and population identification}
 \begin{lstlisting}
-# Load example data from package
+# Load trait data from package
 trait_df_pop <- read.csv(
-  system.file("extdata", "vignette_trait_df_pop.csv", package = "LAVA")
+  system.file("extdata", "vignette_trait_df_pop.csv", 
+              package = "LAVA")
 )
 
+head(trait_df_pop)
+#   individual      trait trait_id population
+# 1          1 -1.7629615        1          1
+# 2          2 -1.6589637        1          1
+# 3          3 -1.2060932        1          1
+# 4          4 -0.1079098        1          1
+# 5          5 -1.5611013        1          1
+# 6          6 -1.1595368        1          1
+
+# Load population-individual mapping
 population_individual_id_df <- read.csv(
   system.file("extdata", "vignette_population_individual_id_df.csv", 
               package = "LAVA")
 )
 
-head(trait_df_pop)
-#  individual     trait trait_id population
-# 1          1 -1.415731        1          1
-# 2          2 -1.549296        1          1
-# 3          3 -1.492134        1          1
-# 4          4 -1.637156        1          1
-# 5          5 -1.181021        1          1
-# 6          6 -2.038686        1          1
-
 head(population_individual_id_df)
 #   pop_id individual
-# 1      1        200
-# 2      1        201
-# 3      1        202
-# 4      1        203
-# 5      1        204
-# 6      1        205
+# 1      1        180
+# 2      1        181
+# 3      1        182
+# 4      1        183
+# 5      1        184
+# 6      1        185
 \end{lstlisting}
-\subsection{Step 3: Calculating coancestries}
-\begin{lstlisting}
-# Note: 'dos' and 'pop' should come from your genetic data processing
-# For this example, assume they exist from Step 1
 
+\subsection{Step 4: Calculating coancestries}
+\begin{lstlisting}
 coancestries_dosage <- calculate_coancestries(
   genetic_data_parents = dos,
   genotyped_parent_populations = pop,
@@ -333,18 +439,20 @@ coancestries_dosage <- calculate_coancestries(
   column_population = "pop_id",
   all_parents_genotyped = TRUE
 )
+# When you run this function, it will print out some information 
+# on the subpopulations.
+# This should yield PD Theta.P and The.M matrices.
+# The.M should have size 1000x1000.
+# Theta.P should be 20 by 20.
 
+# Extract matrices
 Theta.P <- coancestries_dosage$Theta.P
 The.M <- coancestries_dosage$The.M
-
-# The calculate_coancestries function now uses kinship2::kinship() 
-# internally for more accurate relatedness calculations when using pedigree data
 \end{lstlisting}
-\subsection{Step 4: Visualizing coancestries}
+
+\subsection{Step 5: Visualizing coancestries}
 \begin{lstlisting}
-heatmap(Theta.P,
-        Rowv = NA,  
-        Colv = NA)  
+heatmap(Theta.P, Rowv = NA, Colv = NA)
 \end{lstlisting}
 \begin{figure}[h!]
     \centering
@@ -354,9 +462,7 @@ heatmap(Theta.P,
 \end{figure}
 
 \begin{lstlisting}
-heatmap(The.M,
-        Rowv = NA,  
-        Colv = NA)  
+heatmap(The.M, Rowv = NA, Colv = NA)
 \end{lstlisting}
 \begin{figure}
     \centering
@@ -365,71 +471,154 @@ heatmap(The.M,
     \label{fig:TheM}
 \end{figure}
 
-\subsection{Running lava()}
+\subsection{Step 6: Running LAVA analysis}
 \begin{lstlisting}
-results <- lava(Theta.P, 
-                The.M, 
-                trait_dataframe = trait_df_pop, 
-                column_individual = "individual", 
-                column_trait = "trait")
-                
-results
+# Run LAVA analysis
+result <- lava(
+  Theta.P = Theta.P,
+  The.M = The.M,
+  trait_dataframe = trait_df_pop,
+  column_individual = "individual",
+  column_trait = "trait"
+)
 \end{lstlisting}
+
+Once you run lava, this is the output you should see:
 \begin{verbatim}
-# ===============================
-# Log Ancestral Variance Analysis (LAVA)
-# ===============================
-
-# Log ratio of estimated ancestral variances (between equation/ # within equation):
-  Mean: 1.9245 (95% CI: 1.0749 to 2.8382)
-
-Difference in variance components (between equation/ within equation):
-  Mean: NaN
-  Median: NA (95% CI: NA to NA)
-
-Statistical tests:
-  Hypothesis test p-value: 0.0000
-
-===============================
-\end{verbatim}
-
-\subsection{Advanced usage for posterior distribution}
-We keep the full model as an attribute of the output. 
-\begin{lstlisting}
-#Access the brms model which was stored as attribute of lava's results
-fit <- attr(results, "model")
-
-#Now you can use it like any brms object
-library(brms)
-post_all <- as_draws_df(fit) #raw posterior samples
-pp_check(fit) #checkign posterior samples
-summary(fit)
-\end{lstlisting}
-\begin{verbatim}
+=== Model Summary ===
  Family: gaussian 
-  Links: mu = identity; sigma = identity 
+  Links: mu = identity 
 Formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M)) 
    Data: dat (Number of observations: 1000) 
-  Draws: 8 chains, each with iter = 3000; warmup = 1000; thin = 2;
-         total post-warmup draws = 8000
+  Draws: 4 chains, each with iter = 5000; warmup = 2000; thin = 2;
+         total post-warmup draws = 6000
 
 Multilevel Hyperparameters:
 ~ind (Number of levels: 1000) 
               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sd(Intercept)     0.34      0.03     0.28     0.40 1.00     1459     2500
+sd(Intercept)     0.38      0.03     0.32     0.44 1.01      930     1540
 
 ~pop (Number of levels: 20) 
               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sd(Intercept)     0.90      0.19     0.60     1.33 1.00     5560     6842
+sd(Intercept)     0.80      0.17     0.55     1.19 1.00     3912     4923
 
 Regression Coefficients:
           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-Intercept     0.07      0.46    -0.84     0.97 1.00     6596     6642
+Intercept     0.07      0.41    -0.78     0.89 1.00     5326     4822
 
 Further Distributional Parameters:
       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sigma     0.33      0.02     0.29     0.36 1.00     1445     2010
+sigma     0.31      0.02     0.28     0.35 1.01      955     1601
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).
 \end{verbatim}
+
+\subsection{Step 7: Checking convergence}
+\begin{lstlisting}
+# Check convergence diagnostics
+result$convergence
+# $n_divergent
+# [1] 0
+# 
+# $max_rhat
+# [1] 1.008571
+\end{lstlisting}
+
+The convergence diagnostics include:
+\begin{itemize}
+\item \texttt{n\_divergent}: Number of divergent transitions after warmup. Should be 0 or very small.
+\item \texttt{max\_rhat}: Maximum $\hat{R}$ value across all parameters. Should be $\leq 1.01$ for good convergence.
+\end{itemize}
+
+If you encounter convergence issues:
+\begin{itemize}
+\item Increase \texttt{iter} and \texttt{warmup} parameters
+\item Increase \texttt{adapt\_delta} (e.g., \texttt{control = list(adapt\_delta = 0.95)})
+\item Check for issues with your data or model specification
+\end{itemize}
+
+\subsection{Step 8: Examining results}
+\begin{lstlisting}
+# Full results summary
+print(result)
+
+# Log-ratio statistics
+result$log_ratio
+# $p_value
+# [1] 0
+# 
+# $mean_log_ratio
+# [1] 0.7484329
+# 
+# $log_ratio_ci_lower
+#      2.5% 
+# 0.1329892 
+# 
+# $log_ratio_ci_upper
+#     97.5% 
+# 1.452598 
+# 
+# $median_log_ratio
+#       50% 
+# 0.7310082 
+# 
+# $ci_median_lower
+#      2.5% 
+# 0.1329892 
+# 
+# $ci_median_upper
+#     97.5% 
+# 1.452598
+
+# Plot posterior distribution of the log-ratio
+plot(result)
+
+# View posterior samples (minimal version by default)
+head(result$sampling)
+#   b_Intercept sd_pop__Intercept sd_ind__Intercept var_pop var_ind log_ratio
+#         <dbl>             <dbl>             <dbl>   <dbl>   <dbl>     <dbl>
+# 1    -0.00658             0.752             0.410   0.566   0.168      1.22
+# 2    -0.190               0.672             0.355   0.452   0.126      1.27
+# 3     0.244               0.960             0.391   0.922   0.153      1.80
+# 4     0.375               1.20              0.368   1.43    0.135      2.36
+# 5    -0.200               0.686             0.363   0.471   0.132      1.27
+# 6     0.399               0.835             0.366   0.697   0.134      1.65
+\end{lstlisting}
+
+The \texttt{result\$log\_ratio} list contains:
+\begin{itemize}
+\item \texttt{p\_value}: Bayesian p-value testing if log-ratio differs from 0
+\item \texttt{mean\_log\_ratio}: Posterior mean of the log-ratio
+\item \texttt{log\_ratio\_ci\_lower/upper}: 95\% credible interval bounds
+\item \texttt{median\_log\_ratio}: Posterior median
+\item \texttt{ci\_median\_lower/upper}: 95\% CI around the median
+\end{itemize}
+
+\subsection{Step 9: Saving the full model}
+By default, LAVA saves only a minimal subset of posterior samples to reduce memory usage. To access the complete brms model object:
+
+\begin{lstlisting}
+# Run with save_full_model = TRUE
+result_full <- lava(
+  Theta.P = Theta.P,
+  The.M = The.M,
+  trait_dataframe = trait_df_pop,
+  column_individual = "individual",
+  column_trait = "trait",
+  save_full_model = TRUE  # Saves complete brms model
+)
+
+# Access the full brmsfit object
+result_full$sampling  # Now a brmsfit object
+
+# Use all brms functionality
+library(brms)
+summary(result_full$sampling)
+pp_check(result_full$sampling)
+posterior::as_draws_df(result_full$sampling)  # All posterior draws
+\end{lstlisting}
 \section{Interpreting results}
 
 \subsection{Understanding the Log Ratio}
