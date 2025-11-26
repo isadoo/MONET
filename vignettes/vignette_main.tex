@@ -136,26 +136,37 @@ LAVA requires:
     \item Trait data should be a data frame with at least two columns, one with individual identification and another with trait values. 
 \end{itemize}
 
+\section{Workflow Overview}
 
-\section{General step-by-step}
-Here we show an abstract step-by-step of how to run the script. On the following section we provide a tutorial to be followed with the example dataset. 
+LAVA follows a straightforward workflow:
 
+\begin{enumerate}
+\item \textbf{Prepare Data}: Organize genetic markers, phenotypes, and population information
+\item \textbf{Calculate Coancestries}: Compute $\Theta_P$ (population-level) and $M$ (individual-level) matrices
+\item \textbf{Run Analysis}: Fit the mixed model and estimate ancestral variances
+\item \textbf{Interpret Results}: Evaluate evidence for local adaptation
+\end{enumerate}
+
+Here we show a general overview of what the steps are. In section (\S\ref{sec:parameters}) we offer a detailed description of the parameters.
+On section (\S\ref{sec:tutorial}) we provide a complete tutorial with example data.
+
+
+\bigskip
+\textit{This is not a tutorial, just the description of step-by-step}
 \subsection{Step 1: Prepare Your Data}
-
+To run LAVA it is necessary to have coancestries of your populations and measurements of the trait of interest.
+We provide a function to calculate coancestries from genetic data in dosage format. 
+To use this function you will need genetic data from the populations of origin for example:
 \begin{lstlisting}
-# Example data structure
 head(genetic_data_parents)
 #   ind_id  pop_id  locus1  locus2  locus3  ...
 #   P001    pop1    1       0       2       
 #   P002    pop1    0       1       1       
 #   P003    pop2    2       2       0       
+\end{lstlisting}
 
-head(trait_data)
-#   id      trait_value
-#   F001    15.2
-#   F002    14.8
-#   F003    16.1
-
+You will also need a data frame mapping individuals to populations, with columns specifying individual IDs and population IDs:
+\begin{lstlisting}
 head(population_ind)
 #   id      population_id
 #   F001    pop1
@@ -165,8 +176,19 @@ head(population_ind)
 #   F005    pop2
 \end{lstlisting}
 
-\subsection{Step 2: Calculate Coancestries}
+The last required data entry is the trait data, which should identify individuals and their trait values.
+\begin{lstlisting}
+head(trait_data)
+#   id      trait_value
+#   F001    15.2
+#   F002    14.8
+#   F003    16.1
+\end{lstlisting}
 
+To calculate the $\mathbf{M}$ matrix, it is necesary to have either a pedigree data frame or dosages from the phenotyped individuals.
+
+\subsection{Step 2: Calculate Coancestries}
+Once you have organized your data, you can calculate the coancestry matrices using the \texttt{calculate\_coancestries()} function:
 \begin{lstlisting}
 # get population IDs for parents
 parent_populations <- genetic_data_parents$pop_id
@@ -191,7 +213,7 @@ dim(The.M)    # Should be n_individuals x n_individuals
 \end{lstlisting}
 
 \subsection{Step 3: Run LogAV Analysis}
-
+Now you have all the basic requiredments to run LAVA.
 \begin{lstlisting}
 # Run LAVA analysis
 result <- lava(
@@ -218,19 +240,6 @@ cat("P-value:", result$log_ratio$p_value, "\n")
 cat("95% CI:", result$log_ratio$log_ratio_ci_lower, 
     "to", result$log_ratio$log_ratio_ci_upper, "\n")
 \end{lstlisting}
-
-\section{Workflow Overview}
-
-LAVA follows a straightforward workflow:
-
-\begin{enumerate}
-\item \textbf{Prepare Data}: Organize genetic markers, phenotypes, and population information
-\item \textbf{Calculate Coancestries}: Compute $\Theta_P$ (population-level) and $M$ (individual-level) matrices
-\item \textbf{Run Analysis}: Fit the mixed model and estimate ancestral variances
-\item \textbf{Interpret Results}: Evaluate evidence for local adaptation
-\end{enumerate}
-
-The following sections provide parameter descriptions (\S\ref{sec:parameters}) and a complete tutorial with example data (\S\ref{sec:tutorial}).
 
 \section{Function Reference}
 \label{sec:parameters}
