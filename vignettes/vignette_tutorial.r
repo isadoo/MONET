@@ -1,210 +1,251 @@
+# Script to generate example data for the LAVA package vignette tutorial
+# This script creates all the data files that will be included in inst/extdata/
+# and demonstrates the workflow that users will follow in the vignette
 
-#This script is following the tutorial section of the vignette
-
-#If you haven't imported yet:
+# Install/update LAVA package if needed
 devtools::install_github("isadoo/LAVA")
-#Then make sure to update the libraries if necessary
 
 library(LAVA)
+library(hierfstat)
+library(brms)
 
-#Loading Genetic data
 
+library(JGTeach)
+library(gaston)
+library(Matrix)
+
+source("/users/ijeronim/mywork/Chapter2/Package/create_F1.r")
+
+cat("================================================================\n")
+cat("LAVA VIGNETTE DATA GENERATION AND TUTORIAL SCRIPT\n")
+cat("================================================================\n\n")
+
+# ============================================================
+# PART 1: GENERATE EXAMPLE DATA (for package developers)
+# ============================================================
+cat("PART 1: Generating example data for package...\n")
+cat("----------------------------------------------------------------\n\n")
+
+# Load source data files
+lava_extdata <- system.file("extdata", package = "LAVA")
+
+neutral_file <- file.path(lava_extdata, "neutral_data_g3000.dat")
+quanti_file <- file.path(lava_extdata, "quanti_trait_g3000.dat")
+
+#read data
+sim <- hierfstat::read.fstat(fname = neutral_file)
+sim_quanti <- hierfstat::read.fstat(fname = quanti_file)
+
+cat("Genetic data loaded:\n")
+cat("  - Individuals:", nrow(sim), "\n")
+cat("  - Neutral loci:", ncol(sim) - 1, "\n")
+cat("  - Populations:", length(unique(sim$Pop)), "\n\n")
+
+# Convert to dosage format
+dos <- hierfstat::biall2dos(sim[, -1])
+dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1], diploid = TRUE)
+pop <- sim$Pop
+
+cat("Creating F1 generation \n")
+# Breeding design: within-population crosses (5x5 sires x dams per population)
+pop_sizes <- table(sim[, 1])
+np <- length(pop_sizes)
+offsrping_per_mating <- 2
+
+sire <- c()
+dam <- c()
+
+for (i in 1:np) {
+  n_ind <- pop_sizes[i]
+  n_sire <- n_ind / 2
+  n_dam <- n_ind / 2
+  
+  sire <- c(sire, rep((i - 1) * n_ind + 1:(n_sire), each = n_dam * offsrping_per_mating))
+  dam <- c(dam, rep((i - 1) * n_ind + (n_sire + 1):n_ind, each = offsrping_per_mating, times = n_sire))
+}
+
+# Founders as NA
+nft <- sum(pop_sizes)
+sire <- c(rep(NA, nft), sire)
+dam <- c(rep(NA, nft), dam)
+nt <- length(sire)
+nf <- -c(1:nft)  # non-founders
+
+pedi <- data.frame(ind = 1:nt, sire = sire, dam = dam)
+F1_full_data <- create_F1(sim, sim_quanti, pedi)
+
+# Build F1 population structure
+sire_per_pop <- as.vector(pop_sizes) / 2
+dam_per_pop <- as.vector(pop_sizes) / 2
+offspring_per_pop_F1 <- sire_per_pop * dam_per_pop * 2
+pop_F1 <- rep(1:np, offspring_per_pop_F1)
+
+cat("F1 generation created:\n")
+cat("  - Total F1 individuals:", length(pop_F1), "\n")
+cat("  - Individuals per population:", unique(offspring_per_pop_F1), "\n\n")
+
+# Extract F1 data (excluding founders)
+dos_F1only_neutral <- F1_full_data$dos_F1_neutral[nf, ]
+dosage_quanti_F1 <- F1_full_data$dos_F1_quanti[nf, ]
+
+# Create trait from QTLs
+Y <- rowSums((dosage_quanti_F1 - 1) * 0.2)
+err <- rnorm(length(Y), mean = 0, sd = 1)
+Y <- Y + err
+mean_Y <- mean(Y)
+centered_Y <- Y - mean_Y
+var_Y <- var(centered_Y)
+trait <- centered_Y / sqrt(var_Y)
+
+# Build data frames
+NTraits <- 1
+individual <- rep(1:(length(trait) / NTraits), NTraits)
+population_individual_id_df <- data.frame(pop_id = pop_F1, individual = individual)
+trait_id <- rep(1:NTraits, each = (length(trait) / NTraits))
+population <- rep(pop_F1, NTraits)
+trait_df_pop <- data.frame(individual, trait, trait_id, population)
+
+# Save all data files to inst/extdata
+save_path <- file.path("/users/ijeronim/mywork/LAVA/inst/extdata")
+
+
+write.csv(population_individual_id_df, 
+          file.path(save_path, "vignette_population_individual_id_df.csv"), 
+          row.names = FALSE)
+saveRDS(dos_F1only_neutral, 
+        file.path(save_path, "vignette_dos_F1only_neutral.rds"))
+saveRDS(dosage_quanti_F1, 
+        file.path(save_path, "vignette_dosage_quanti_F1.rds"))
+write.csv(trait_df_pop, 
+          file.path(save_path, "vignette_trait_df_pop.csv"), 
+          row.names = FALSE)
+
+# ============================================================
+# PART 2: VIGNETTE TUTORIAL WORKFLOW (what users will follow)
+# ============================================================
+cat("================================================================\n")
+cat("PART 2: VIGNETTE TUTORIAL WORKFLOW\n")
+cat("================================================================\n\n")
+
+cat("Step 1: Getting the genetic data to dosages\n")
+cat("------------------------------------------------------\n")
+
+# Read data from package example files (as users will do)
 neutral_file <- system.file("extdata", "neutral_data_g3000.dat", package = "LAVA")
 quanti_file <- system.file("extdata", "quanti_trait_g3000.dat", package = "LAVA")
 
 sim <- hierfstat::read.fstat(fname = neutral_file)
-head(sim[,1:10])
-# Pop n1_l1 n1_l2 n1_l3 n1_l4 n1_l5 n1_l6 n1_l7 n1_l8 n1_l9
-# 1   1    22    11    21    11    22    11    11    22    11
-# 2   1    22    11    11    11    21    11    12    22    11
-# 3   1    22    11    22    11    22    22    11    22    11
-# 4   1    22    11    11    11    11    21    12    22    11
-# 5   1    22    11    11    11    11    11    11    22    11
-# 6   1    22    11    11    11    21    11    11    22    11
-
 sim_quanti <- hierfstat::read.fstat(fname = quanti_file)
-# head(sim_quanti[,1:10])
-#   Pop q1_l1 q1_l2 q1_l3 q1_l4 q1_l5 q1_l6 q1_l7 q1_l8 q1_l9
-# 1   1    22    11    22    22    11    22    12    22    22
-# 2   1    22    11    21    21    11    22    11    11    22
-# 3   1    22    11    22    22    11    22    22    22    22
-# 4   1    22    11    22    11    11    22    21    11    22
-# 5   1    12    11    22    22    11    22    12    11    22
-# 6   1    22    11    22    21    11    22    22    11    22
+
+cat("First 5 rows, first 5 columns:\n")
+print(sim[1:5, 1:5])
+cat("\n")
 
 dos <- hierfstat::biall2dos(sim[, -1])
-head(dos[,1:5])
-#      n1_l1 n1_l2 n1_l3 n1_l4 n1_l5
-# [1,]     2     0     1     0     2
-# [2,]     2     0     0     0     1
-# [3,]     2     0     2     0     2
-# [4,]     2     0     0     0     0
-# [5,]     2     0     0     0     0
-# [6,]     2     0     0     0     1
-
-dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1])
-head(dos_quanti[,1:5])
-#      q1_l1 q1_l2 q1_l3 q1_l4 q1_l5
-# [1,]     2     0     2     2     0
-# [2,]     2     0     1     1     0
-# [3,]     2     0     2     2     0
-# [4,]     2     0     2     0     0
-# [5,]     1     0     2     2     0
-# [6,]     2     0     2     1     0
-
+dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1], diploid = TRUE)
 pop <- sim$Pop
+
+cat("Dosage format - first 5 rows, first 5 loci:\n")
+print(dos[1:5, 1:5])
+cat("\n")
+
+# Load F1 dosages
 dos_F1only_neutral <- readRDS(
   system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "LAVA")
 )
+cat("F1 neutral dosages loaded:", dim(dos_F1only_neutral), "\n\n")
 
-#Loading trait data
+cat("Step 2: Loading trait data and population identification\n")
+cat("------------------------------------------------------\n")
+
 trait_df_pop <- read.csv(
   system.file("extdata", "vignette_trait_df_pop.csv", package = "LAVA")
 )
 
-head(trait_df_pop)
-#   individual      trait trait_id population
-# 1          1 -1.7629615        1          1
-# 2          2 -1.6589637        1          1
-# 3          3 -1.2060932        1          1
-# 4          4 -0.1079098        1          1
-# 5          5 -1.5611013        1          1
-# 6          6 -1.1595368        1          1
-
-
 population_individual_id_df <- read.csv(
-  system.file("extdata", "vignette_population_individual_id_df.csv", 
-              package = "LAVA")
+  system.file("extdata", "vignette_population_individual_id_df.csv", package = "LAVA")
 )
-head(population_individual_id_df)
-#   pop_id individual
-# 1      1        180
-# 2      1        181
-# 3      1        182
-# 4      1        183
-# 5      1        184
-# 6      1        185
+
+cat("Trait data (first 6 rows):\n")
+print(head(trait_df_pop))
+cat("\n")
+
+cat("Population-individual mapping (first 6 rows):\n")
+print(head(population_individual_id_df))
+cat("\n")
+
+cat("Step 3: Calculating coancestries\n")
+cat("------------------------------------------------------\n")
 
 coancestries_dosage <- calculate_coancestries(
   genetic_data_parents = dos,
   genotyped_parent_populations = pop,
-  genetic_data_F1 = dos_F1only_neutral, 
+  genetic_data_F1 = dos_F1only_neutral,
   population_individual_id = population_individual_id_df,
-  column_individual = "individual", 
+  column_individual = "individual",
   column_population = "pop_id",
   all_parents_genotyped = TRUE
 )
-# When you run this function, it will print out some information on the subpopulations.
-# This should yield a PD TheM and ThetaP matrices.
-# The.M should have size 1000x1000.
-# Theta.P should be 20 by 20. 
 
 Theta.P <- coancestries_dosage$Theta.P
 The.M <- coancestries_dosage$The.M
 
-#Now we run LAVA
-result <- lava(
-  Theta.P = Theta.P,
-  The.M = The.M,
-  trait_dataframe = trait_df_pop,
-  column_individual = "individual",
-  column_trait = "trait"
-)
-#Once you run lava this is the output you should see:
-# === Model Summary ===
-#  Family: gaussian 
-#   Links: mu = identity 
-# Formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M)) 
-#    Data: dat (Number of observations: 1000) 
-#   Draws: 4 chains, each with iter = 5000; warmup = 2000; thin = 2;
-#          total post-warmup draws = 6000
+cat("Coancestry matrices calculated:\n")
+cat("  Theta.P dimensions:", dim(Theta.P), "\n")
+cat("  The.M dimensions:", dim(The.M), "\n\n")
 
-# Multilevel Hyperparameters:
-# ~ind (Number of levels: 1000) 
-#               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-# sd(Intercept)     0.38      0.03     0.32     0.44 1.01      930     1540
+# Save matrices for future use
+saveRDS(Theta.P, file.path(save_path, "vignette_Theta_P.rds"))
+saveRDS(The.M, file.path(save_path, "vignette_The_M.rds"))
+cat("Matrices saved to inst/extdata\n\n")
 
-# ~pop (Number of levels: 20) 
-#               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-# sd(Intercept)     0.80      0.17     0.55     1.19 1.00     3912     4923
+cat("Step 4: Running lava()\n")
+cat("------------------------------------------------------\n")
 
-# Regression Coefficients:
-#           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-# Intercept     0.07      0.41    -0.78     0.89 1.00     5326     4822
-
-# Further Distributional Parameters:
-#       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-# sigma     0.31      0.02     0.28     0.35 1.01      955     1601
-
-# Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
-# and Tail_ESS are effective sample size measures, and Rhat is the potential
-# scale reduction factor on split chains (at convergence, Rhat = 1).
-
-#If you want to check the convergence of your model you can do: 
-#Convergence diagnostics
-result$convergence
-# $n_divergent
-# [1] 0
-
-# $max_rhat
-# [1] 1.008571
-
-#And to further examine the resutls you can use the following methods:
-#full results
-print(result)
-
-#log-ratio statistics
-result$log_ratio
-# $p_value
-# [1] 0
-# 
-# $mean_log_ratio
-# [1] 0.7484329
-# 
-# $log_ratio_ci_lower
-#      2.5% 
-# 0.1329892 
-# 
-# $log_ratio_ci_upper
-#     97.5% 
-# 1.452598 
-# 
-# $median_log_ratio
-#       50% 
-# 0.7310082 
-# 
-# $ci_median_lower
-#      2.5% 
-# 0.1329892 
-# 
-# $ci_median_upper
-#     97.5% 
-# 1.452598
-
-#Plot the posterior distribution of the log-ratio
-plot(result)
-
-
-#Because we did not change the parameter save_full_model to TRUE, the full brms model is not saved by default.
-#Here we are looking at a sample of the posterior:
-head(result$sampling)
-#   b_Intercept sd_pop__Intercept sd_ind__Intercept var_pop var_ind log_ratio
-#         <dbl>             <dbl>             <dbl>   <dbl>   <dbl>     <dbl>
-# 1    -0.00658             0.752             0.410   0.566   0.168      1.22
-# 2    -0.190               0.672             0.355   0.452   0.126      1.27
-# 3     0.244               0.960             0.391   0.922   0.153      1.80
-# 4     0.375               1.20              0.368   1.43    0.135      2.36
-# 5    -0.200               0.686             0.363   0.471   0.132      1.27
-# 6     0.399               0.835             0.366   0.697   0.134      1.65
-
-#To extract the full brms model, you would need to run lava with save_full_model = TRUE, as shown below
-result_full <- lava(
+results <- lava(
   Theta.P = Theta.P,
   The.M = The.M,
   trait_dataframe = trait_df_pop,
   column_individual = "individual",
   column_trait = "trait",
-  save_full_model = TRUE  # This saves the complete brms model
+  save_full_model = FALSE
 )
 
-result_full$sampling  # This is now a brmsfit object
+cat("\n")
+cat("================================================================\n")
+cat("LAVA RESULTS FOR VIGNETTE\n")
+cat("================================================================\n\n")
+
+print(results)
+
+cat("\n================================================================\n")
+cat("VIGNETTE UPDATE INFORMATION\n")
+cat("================================================================\n\n")
+
+cat("Log ratio summary:\n")
+cat("  Mean:", round(results$log_ratio$mean_log_ratio, 4), "\n")
+cat("  Median:", round(results$log_ratio$median_log_ratio, 4), "\n")
+cat("  95% CI: [", round(results$log_ratio$log_ratio_ci_lower, 4), ", ",
+    round(results$log_ratio$log_ratio_ci_upper, 4), "]\n", sep = "")
+cat("  P-value:", round(results$log_ratio$p_value, 4), "\n\n")
+
+cat("Convergence diagnostics:\n")
+cat("  Divergent transitions:", results$convergence$n_divergent, "\n")
+cat("  Max Rhat:", round(results$convergence$max_rhat, 4), "\n\n")
+
+cat("Results structure:\n")
+cat("  - sampling: ", class(results$sampling), "\n")
+cat("  - log_ratio: list with p_value, mean, median, CIs\n")
+cat("  - hypothesis: formal test results\n")
+cat("  - convergence: n_divergent, max_rhat\n")
+cat("  - trait_name:", results$trait_name, "\n")
+cat("  - formula_used:", results$formula_used, "\n\n")
+
+# Save results
+saveRDS(results, file.path(save_path, "vignette_lava_results.rds"))
+cat("Results saved to inst/extdata/vignette_lava_results.rds\n\n")
+
+cat("================================================================\n")
+cat("DATA GENERATION COMPLETE!\n")
+cat("All files saved to:", save_path, "\n")
+cat("================================================================\n")
