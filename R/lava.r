@@ -4,7 +4,8 @@
 #' this function estimates the log ratio of ancestral variances using a Bayesian mixed-effects model.
 #' 
 #' @usage lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", 
-#'             column_population = "population", formula_covariates = NULL, ...)
+#'             column_population = "population", column_se = NULL, formula_covariates = NULL, 
+#'             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE, ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
 #'
@@ -25,12 +26,24 @@
 #' @param formula_covariates A character string specifying additional covariates to include in the model.
 #' For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).
 #' 
+#' @param iter Number of MCMC iterations per chain. Default is 5000.
+#' 
+#' @param warmup Number of warmup (burn-in) iterations per chain. Default is 2000.
+#' 
+#' @param thin Thinning rate for the MCMC sampler. Default is 2 (every 2nd sample is kept).
+#' 
+#' @param save_full_model Logical. If TRUE, saves the full brms model object in the results.
+#' If FALSE (default), only minimal posterior samples (fixed effects, variance components, and log-ratio) are retained to save memory.
+#' 
 #' @param ... Additional arguments passed to the brms function.
 #'
 #' @return A lava type object containing:
-#' \item{posterior_samples}{A list with posterior samples of variance components and residuals.}
-#' \item{log_ratio}{A list with the p-value of the log ratios, the mean of the log ratio of between- and within-population variance, and confidence intervals.}
-#' \item{model}{as an attribute.}
+#' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (var_pop, var_ind), and log_ratio.}
+#' \item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds).}
+#' \item{hypothesis}{Results from brms hypothesis test comparing population vs individual variance.}
+#' \item{trait_name}{Name of the trait column analyzed.}
+#' \item{formula_used}{The model formula used in the analysis.}
+#' \item{convergence}{A list containing n_divergent (number of divergent transitions) and max_rhat (maximum R-hat value across parameters).}
 #' 
 #' @details This function standardizes trait data, constructs a Bayesian mixed-effects model 
 #' using `brms`, and estimates ancestral variances. The function assumes no crosses between populations 
@@ -275,12 +288,10 @@ if (length(have_sd) == 2) {
 
   log_ratio = list(
     p_value = p_value,
-    mean_log_ratio = mean_log_ratio,
-    log_ratio_ci_lower = quant_log_ratio[1],
-    log_ratio_ci_upper = quant_log_ratio[2],
-    median_log_ratio = quant_log_med["50%"],
-    ci_median_lower = quant_log_med["2.5%"],
-    ci_median_upper = quant_log_med["97.5%"]
+    mean = mean_log_ratio,
+    median = quant_log_med["50%"],
+    ci_lower = quant_log_ratio[1],
+    ci_upper = quant_log_ratio[2]
   ),
 
   hypothesis = the_hyp$hypothesis[2:5],
@@ -293,6 +304,33 @@ if (length(have_sd) == 2) {
 )
 class(results) <- "lava"
 return(results)
+}
+#' @export
+print.lava <- function(x, ...) {
+  cat("\n=== LAVA Analysis Results ===\n\n")
+  cat("Trait analyzed:", x$trait_name, "\n")
+  cat("Formula used:", x$formula_used, "\n\n")
+  
+  cat("--- Log-Ratio of Ancestral Variances ---\n")
+  cat(sprintf("  Mean: %.4f\n", x$log_ratio$mean))
+  cat(sprintf("  Median: %.4f\n", x$log_ratio$median))
+  cat(sprintf("  95%% Credible Interval: [%.4f, %.4f]\n", 
+              x$log_ratio$ci_lower, x$log_ratio$ci_upper))
+  cat(sprintf("  P-value: %.4f\n\n", x$log_ratio$p_value))
+  
+  cat("--- Convergence Diagnostics ---\n")
+  cat(sprintf("  Max R-hat: %.4f", x$convergence$max_rhat))
+  if (x$convergence$max_rhat > 1.01) {
+    cat(" (WARNING: > 1.01)\n")
+  }
+  
+  cat(sprintf("  Divergent transitions: %d", x$convergence$n_divergent))
+  if (x$convergence$n_divergent > 0) {
+    cat(" (WARNING: Consider increasing adapt_delta)\n")
+  }
+  
+  cat("\nUse plot() to visualize the posterior distribution.\n\n")
+  invisible(x)
 }
 #' @export
 plot.lava <- function(x, ...) {
