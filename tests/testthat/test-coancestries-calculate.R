@@ -61,15 +61,15 @@ test_that("calculate_coancestries works with dosage data and population info", {
   
   # Check return structure
   expect_type(result, "list")
-  expect_true("The.M" %in% names(result))
+  expect_true("M" %in% names(result))
   expect_true("Theta.P" %in% names(result))
   
   # Check dimensions
-  expect_equal(dim(result$The.M), c(n_f1, n_f1))
+  expect_equal(dim(result$M), c(n_f1, n_f1))
   expect_equal(dim(result$Theta.P), c(n_populations, n_populations))
   
   # Check that matrices are symmetric
-  expect_equal(result$The.M, t(result$The.M))
+  expect_equal(result$M, t(result$M))
   expect_equal(result$Theta.P, t(result$Theta.P))
 })
 
@@ -168,8 +168,8 @@ test_that("calculate_coancestries output properties", {
     all_parents_genotyped = TRUE
   )
   
-  # The.M should be positive semi-definite
-  eigenvalues_M <- eigen(result$The.M)$values
+  # M should be positive semi-definite
+  eigenvalues_M <- eigen(result$M)$values
   expect_true(all(eigenvalues_M >= -1e-10))  # Allow for small numerical errors
   
   # Theta.P should have appropriate range (note: can be negative in some cases)

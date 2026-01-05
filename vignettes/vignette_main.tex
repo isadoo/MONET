@@ -35,7 +35,7 @@
 \maketitle
 
 \begin{abstract}
-The LAVA package implements the LogAV method for testing local adaptation in structured populations by comparing log ratios of ancestral variances. The method addresses limitations of traditional $Q_{ST}$-$F_{ST}$ comparisons by accounting for complex population structures through coancestry matrices. The goal of the LAVA package is to provide a suggestion on how to implement the LogAV algorithm. This vignette provides a comprehensive guide to using LAVA, including theoretical background, practical examples, and interpretation of results. 
+The LAVA package implements the LogAV method for testing local adaptation in structured populations by comparing log ratios of ancestral variances. The method addresses limitations of traditional $Q_{ST}$-$F_{ST}$ comparisons by accounting for complex population structures through coancestry matrices. The LAVA package implements the LogAV algorithm. This vignette provides a comprehensive guide to using LAVA, including theoretical background, practical examples, and interpretation of results. 
 \end{abstract}
 
 \tableofcontents
@@ -66,12 +66,12 @@ $$\text{LogAV} = \log\left(\frac{\hat{V}_{A,B}}{\hat{V}_{A,W}}\right)$$
 \subsection{Population structure description}
 
 \subsection{Coancestry Estimation}
-We use and recommend the usage of the allele-sharing method of moments [cite Weir and Goudet 2017 and Goudet and Weir 2023] to estimage coancestries for using the LAVA package. 
+We use and recommend the use of the allele-sharing method of moments [cite Weir and Goudet 2017 and Goudet and Weir 2023] to estimate coancestries for using the LAVA package. 
 
 LogAV uses two key matrices:
 
 \subsubsection{Population Coancestry Matrix ($\mathbf{\Theta_p}$)}
-$\mathbf{\Theta_p}$ contains expected coancestries between pairs of subpopulations relative to the ancestral population. Element $\Theta_p^{i,j}$ describes the probability of identity-by-descent (IBD) between random alleles from subpopulations $i$ and $j$.
+$\mathbf{\Theta_p}$ contains mean coancestries for pairs of individuals one in each of two different subpopulations relative to the ancestral population. Element $\Theta_p^{i,j}$ describes the probability of identity-by-descent (IBD) between random alleles from subpopulations $i$ and $j$.
 
 $$\hat{\Theta}_p = \frac{\bar{A}^{\mathcal{P}}_s - \min(\bar{A}^{\mathcal{P}}_s)}{1 - \min(\bar{A}^{\mathcal{P}}_s)}$$
 
@@ -123,17 +123,17 @@ LAVA requires:
 
 \begin{enumerate}
 \item \textbf{Phenotypic data}: Offspring (F1) traits measured in common garden
-\item \textbf{Genetic markers}: Neutral markers from founder population (non-common gardens)
-\item \textbf{Relatedness for F1}: Pedigree information or F1 genetic markers (common gardens individuals)
+\item \textbf{Genetic markers}: Genetic markers from founder population (non-common gardens)
+\item \textbf{Relatedness for F1}: Pedigree information or genetic markers from F1 individuals(common gardens individuals)
 \item \textbf{Population identification}: Founder and F1 individuals should be linked to a population.
 \end{enumerate}
 
 \subsection{Data Format}
 \begin{itemize}
-    \item Genetic data should be in dosage format (0, 1, 2 for diploids), with individuals as rows and loci as columns.
-    \item Population identification for F1 should be a data frame including population names and individual names.
-    \item Population identification for founder population should be a vector of population names.
-    \item Trait data should be a data frame with at least two columns, one with individual identification and another with trait values. 
+    \item Genetic data should be in dosage format (0 for reference homozygote, 1 for heterozygote, 2 for derived homozygote), with individuals as rows and loci as columns. with $n$ individuals and $L$ loci, the dosage matrix is $n \times L$.
+    \item Population identification for F1 should be a data frame including population names and individual names (dimension $n \times 2$).
+    \item Population identification for founder population should be a vector of population names (vector of length $r$ with $r$ populations).
+    \item Trait data should be a data frame with at least two columns, one with individual identification and another with trait values (dimension $n \times 2$). 
 \end{itemize}
 
 \section{Workflow Overview}
@@ -155,8 +155,8 @@ On section (\S\ref{sec:tutorial}) we provide a complete tutorial with example da
 \textit{This is not a tutorial, just the description of step-by-step}
 \subsection{Step 1: Prepare Your Data}
 To run LAVA it is necessary to have coancestries of your populations and measurements of the trait of interest.
-We provide a function to calculate coancestries from genetic data in dosage format. 
-To use this function you will need genetic data from the populations of origin for example:
+We provide a function \texttt{FUNCTION.NAME} to calculate coancestries from genetic data in dosage format. 
+To use \texttt{FUNCTION.NAME} you will need genetic data from the populations of origin for example:
 \begin{lstlisting}
 head(genetic_data_parents)
 #   ind_id  pop_id  locus1  locus2  locus3  ...
@@ -185,7 +185,7 @@ head(trait_data)
 #   F003    16.1
 \end{lstlisting}
 
-To calculate the $\mathbf{M}$ matrix, it is necesary to have either a pedigree data frame or dosages from the phenotyped individuals.
+To calculate the $\mathbf{M}$ matrix, it is necessary to have either a pedigree data frame or dosages from the F1 (phenotyped) individuals.
 
 \subsection{Step 2: Calculate Coancestries}
 Once you have organized your data, you can calculate the coancestry matrices using the \texttt{calculate\_coancestries()} function:
@@ -213,7 +213,7 @@ dim(The.M)    # Should be n_individuals x n_individuals
 \end{lstlisting}
 
 \subsection{Step 3: Run LogAV Analysis}
-Now you have all the basic requiredments to run LAVA.
+Now you have all the basic requirements to run LAVA.
 \begin{lstlisting}
 # Run LAVA analysis
 result <- lava(
@@ -324,7 +324,7 @@ Here we show a step by step example of how to run lava on a simple simulated dat
 The example dataset comes from a simulated metapopulation:
 
 \begin{itemize}
-\item \textbf{Founder populations}: 18 subpopulations in stepping-stone structure
+\item \textbf{Founder populations}: 18 subpopulations in 1-dimensional stepping-stone structure
 \item \textbf{Evolutionary history}: 3000 generations in environmental cline creating selection gradient
 \item \textbf{Breeding design}: Controlled common garden with a North Carolina II design (add reference)
   \begin{itemize}
@@ -346,9 +346,7 @@ The example dataset comes from a simulated metapopulation:
 # Read data from package example files
 neutral_file <- system.file("extdata", "neutral_data_g3000.dat", 
                             package = "LAVA")
-quanti_file <- system.file("extdata", "quanti_trait_g3000.dat", 
-                           package = "LAVA")
-
+he
 # Read the genetic data using hierfstat
 sim <- hierfstat::read.fstat(fname = neutral_file)
 head(sim[,1:10])
@@ -492,7 +490,7 @@ result <- lava(
 )
 \end{lstlisting}
 
-Once you run lava, this is the output you should see:
+ Once you run lava, this is the output you should see:
 \begin{verbatim}
 === Model Summary ===
  Family: gaussian 
@@ -543,8 +541,8 @@ The convergence diagnostics include:
 
 If you encounter convergence issues:
 \begin{itemize}
-\item Increase \texttt{iter} and \texttt{warmup} parameters
-\item Increase \texttt{adapt\_delta} (e.g., \texttt{control = list(adapt\_delta = 0.95)})
+\item Increase \texttt{adapt\_delta} (e.g., \texttt{control = list(adapt\_delta = 0.95)}) to hopefully reduce the number of divergent transitions
+\item Increase \texttt{iter} and \texttt{warmup} parameters to increase the length of the algorithm allowed for it to reach a convergent state
 \item Check for issues with your data or model specification
 \end{itemize}
 
@@ -573,13 +571,8 @@ result$log_ratio
 #       50% 
 # 0.7310082 
 # 
-# $ci_median_lower
-#      2.5% 
-# 0.1329892 
-# 
-# $ci_median_upper
-#     97.5% 
-# 1.452598
+
+
 
 # Plot posterior distribution of the log-ratio
 plot(result)
@@ -630,15 +623,6 @@ posterior::as_draws_df(result_full$sampling)  # All posterior draws
 \end{lstlisting}
 \section{Interpreting results}
 
-\subsection{Understanding the Log Ratio}
-
-\begin{itemize}
-\item $\text{LogAV} = 0$: Neutral evolution (equal ancestral variances)
-\item $\text{LogAV} > 0$: Evidence for local adaptation ($V_{A,B} > V_{A,W}$)
-\item $\text{LogAV} < 0$: Evidence for spatially-homogeneous selection ($V_{A,B} < V_{A,W}$)
-\end{itemize}
-
-%\subsection{Statistical Significance}
 
 \section{Parameter description}
 
@@ -722,12 +706,6 @@ coancestries_ped <- calculate_coancestries(
   all_parents_genotyped = TRUE
 )
 
-# The kinship2 package provides robust handling of:
-# - Parent-offspring relationships (relatedness = 0.5)
-# - Full sibling relationships (relatedness = 0.5)
-# - Half sibling relationships (relatedness = 0.25)
-# - Complex pedigree structures
-# - Inbreeding coefficients
 \end{lstlisting}
 
 \subsection{Multiple Traits Analysis}
@@ -839,15 +817,14 @@ Before running LAVA, verify:
 \end{itemize}
 
 \subsection{Pick your prior}
-As it should be clear by now, the \texttt{lava()} function uses Bayesian inference through the \texttt{brms} package, and is through it that the ancestral variances are estimated. Thus, it requires you to specify a \textbf{prior}; the probability distribution that will describe the expectations about your parameters. 
-We intentionally do not set out default priors because it requires knowing your data. Among several other examples, we recommend you to consider: (1) The characteristics of the type of trait you are studying, whether it is continuous or categorical (\textit{e.g.} height, mass, etc), if your trait is bounded (\textit{e.g.} survival), or if there is some skewness (\textit{e.g.} clutch size), etc. 
-If you do not explicitly define your prior, it will use \texttt{brms} defaults. This first aspect of your data will be very important to choose the shape of the distribution you expect. (2) The measurement precision, sample sizes, common garden quality, will describe how large you expect your residual to be.
+As it should be clear by now, the \texttt{lava()} function uses Bayesian inference through the \texttt{brms} package, and is through it that the ancestral variances are estimated. Thus, it requires you to specify a \textbf{prior}; the probability distribution that will describe the prior beliefs about your parameters. 
+We rely on the default priors from the brms package that should be sensible for most use cases and which we verified result in a calibrated test in our trials of the method.
 
 \subsection{Common questions}
 
 \begin{enumerate}
 \item Can the same dosage data be used to calculate \textbf{M} and $\mathbf{\Theta}^P$? Ideally not. $\mathbf{\Theta}^P$ should describe the relatedness the neutral structure of the populations we are comparing. When we expose F1 to our common gardens we are likely reducing the effect of selection and increasing the effects of drift from separating the populations and from introduced sampling variance. We note on our discussion, there are ways to reconstruct the parental genotypes and thus get $\mathbf{\Theta}^P$ from only sampling genetic data of the common gardens populations. And as reviewer 2 pointed out given reliable ways of estimating the amount of drift between the founder population and the common gardens generation, the issue would be ameliorated
-\item Is it necessary to use common gardens? We advise to always use a strategy to standardize the environmental effects over phenotypic measurements. Similarly to previous methods including $Q_{ST}$--$F_{ST}$, our method will be impacted by confounding effects of the environment and genotype-by-environment interactions. 
+\item Is it necessary to use common gardens? We advise to always use a strategy to standardize the environmental effects over phenotypic measurements. Similarly to the classical framework of $Q_{ST}$--$F_{ST}$ comparison, our method will be impacted by confounding effects of the environment (through phenotypic plasticity) and, even more problematically, by genotype-by-environment interactions. 
 \end{enumerate}
 
 \section{Limitations and Considerations}
@@ -856,7 +833,6 @@ If you do not explicitly define your prior, it will use \texttt{brms} defaults. 
 
 \begin{itemize}
 \item Panmictic ancestral population
-\item Additive genetic effects
 \item Common garden environment standardizes environmental effects
 \item Neutrality of the loci for estimating coancestry
 \item Sufficient SNP density for estimating coancestry

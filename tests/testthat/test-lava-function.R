@@ -1,23 +1,23 @@
 test_that("lava function validates input correctly", {
   # Test input validation for matrices
   expect_error(
-    lava(Theta.P = "not_a_matrix", The.M = matrix(1, 2, 2), trait_dataframe = data.frame(id = 1:2, trait = c(1, 2))),
-    "Theta.P and The.M must be matrices"
+    lava(Theta.P = "not_a_matrix", M = matrix(1, 2, 2), trait_dataframe = data.frame(id = 1:2, trait = c(1, 2))),
+    "Theta.P and M must be matrices"
   )
   
   expect_error(
-    lava(Theta.P = matrix(1, 2, 2), The.M = "not_a_matrix", trait_dataframe = data.frame(id = 1:2, trait = c(1, 2))),
-    "Theta.P and The.M must be matrices"
+    lava(Theta.P = matrix(1, 2, 2), M = "not_a_matrix", trait_dataframe = data.frame(id = 1:2, trait = c(1, 2))),
+    "Theta.P and M must be matrices"
   )
   
   # Test input validation for trait dataframe
   expect_error(
-    lava(Theta.P = matrix(1, 2, 2), The.M = matrix(1, 2, 2), trait_dataframe = "not_a_dataframe"),
+    lava(Theta.P = matrix(1, 2, 2), M = matrix(1, 2, 2), trait_dataframe = "not_a_dataframe"),
     "trait_dataframe must be a data frame with at least two columns"
   )
   
   expect_error(
-    lava(Theta.P = matrix(1, 2, 2), The.M = matrix(1, 2, 2), trait_dataframe = data.frame(id = 1:2)),
+    lava(Theta.P = matrix(1, 2, 2), M = matrix(1, 2, 2), trait_dataframe = data.frame(id = 1:2)),
     "trait_dataframe must be a data frame with at least two columns"
   )
 })
@@ -32,10 +32,10 @@ test_that("lava function creates proper S3 object structure", {
   n_populations <- 2
   
   # Simple block diagonal kinship matrix
-  The.M <- matrix(0, n_individuals, n_individuals)
-  The.M[1:2, 1:2] <- 0.5
-  The.M[3:4, 3:4] <- 0.5
-  diag(The.M) <- 1
+  M <- matrix(0, n_individuals, n_individuals)
+  M[1:2, 1:2] <- 0.5
+  M[3:4, 3:4] <- 0.5
+  diag(M) <- 1
   
   # Simple population coancestry matrix
   Theta.P <- matrix(c(0.1, 0.05, 0.05, 0.1), 2, 2)
@@ -52,7 +52,7 @@ test_that("lava function creates proper S3 object structure", {
   
   # result <- lava(
   #   Theta.P = Theta.P,
-  #   The.M = The.M,
+  #   M = M,
   #   trait_dataframe = trait_data,
   #   chains = 1, iter = 100, warmup = 50  # Minimal for testing
   # )
@@ -73,7 +73,7 @@ test_that("lava function creates proper S3 object structure", {
 
 test_that("lava function handles column name specification", {
   # Create test data with different column names but expect brms errors
-  The.M <- diag(4)
+  M <- diag(4)
   Theta.P <- matrix(0.1, 2, 2)
   diag(Theta.P) <- 0.2
   
@@ -84,11 +84,11 @@ test_that("lava function handles column name specification", {
   )
   
   # Test that the function accepts custom column names but may fail at brms level
-  # due to dimension mismatches between Theta.P and The.M
+  # due to dimension mismatches between Theta.P and M
   expect_error(
     lava(
       Theta.P = Theta.P,
-      The.M = The.M,
+      M = M,
       trait_dataframe = trait_data_custom,
       column_individual = "individual_id",
       column_trait = "phenotype"

@@ -40,7 +40,7 @@ test_that("Package integration workflow works", {
   # # Step 4: Run LAVA analysis
   # lava_result <- lava(
   #   Theta.P = coancestries$Theta.P,
-  #   The.M = coancestries$The.M,
+  #   M = coancestries$M,
   #   trait_dataframe = trait_data,
   #   chains = 2, iter = 500, warmup = 250  # Minimal for testing
   # )
@@ -61,7 +61,7 @@ test_that("Package handles edge cases gracefully", {
   
   # Should handle single individual case - expect specific error
   expect_error(
-    lava(Theta.P = small_matrix, The.M = small_matrix, trait_dataframe = small_trait),
+    lava(Theta.P = small_matrix, M = small_matrix, trait_dataframe = small_trait),
     "All observations in the data were removed|presumably because of NA values"
   )
   
@@ -70,13 +70,13 @@ test_that("Package handles edge cases gracefully", {
     id = paste0("ind_", 1:4),
     trait = rep(1.0, 4)  # No variance
   )
-  The.M <- diag(4)
+  M <- diag(4)
   Theta.P <- matrix(0.1, 2, 2)
   diag(Theta.P) <- 0.2
   
   # This will cause issues in Bayesian modeling - expect error
   expect_error(
-    lava(Theta.P = Theta.P, The.M = The.M, trait_dataframe = identical_trait),
+    lava(Theta.P = Theta.P, M = M, trait_dataframe = identical_trait),
     "All observations in the data were removed|presumably because of NA values"
   )
 })
@@ -146,13 +146,13 @@ test_that("Error messages are informative", {
   
   # Wrong data types
   expect_error(
-    lava(Theta.P = list(1, 2), The.M = matrix(1, 2, 2), trait_dataframe = data.frame(id = 1:2, trait = 1:2)),
+    lava(Theta.P = list(1, 2), M = matrix(1, 2, 2), trait_dataframe = data.frame(id = 1:2, trait = 1:2)),
     "matrices"
   )
   
   # Insufficient trait data
   expect_error(
-    lava(Theta.P = matrix(1, 2, 2), The.M = matrix(1, 2, 2), trait_dataframe = data.frame(single_col = 1:2)),
+    lava(Theta.P = matrix(1, 2, 2), M = matrix(1, 2, 2), trait_dataframe = data.frame(single_col = 1:2)),
     "at least two columns"
   )
   

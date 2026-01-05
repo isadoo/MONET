@@ -3,7 +3,7 @@
 # and demonstrates the workflow that users will follow in the vignette
 
 # Install/update LAVA package if needed
-devtools::install_github("isadoo/LAVA")
+# devtools::install_github("isadoo/LAVA")  # Comment out to avoid overwriting local changes
 
 library(LAVA)
 library(hierfstat)
@@ -15,6 +15,9 @@ library(gaston)
 library(Matrix)
 
 source("/users/ijeronim/mywork/Chapter2/Package/create_F1.r")
+
+# Source the latest lava function with print method for testing
+source("/users/ijeronim/mywork/LAVA/R/lava.r")
 
 cat("================================================================\n")
 cat("LAVA VIGNETTE DATA GENERATION AND TUTORIAL SCRIPT\n")
@@ -126,6 +129,9 @@ write.csv(trait_df_pop,
 cat("================================================================\n")
 cat("PART 2: VIGNETTE TUTORIAL WORKFLOW\n")
 cat("================================================================\n\n")
+devtools::install_github("isadoo/LAVA")
+#load lava
+library(LAVA)
 
 cat("Step 1: Getting the genetic data to dosages\n")
 cat("------------------------------------------------------\n")
@@ -188,15 +194,15 @@ coancestries_dosage <- calculate_coancestries(
 )
 
 Theta.P <- coancestries_dosage$Theta.P
-The.M <- coancestries_dosage$The.M
+M <- coancestries_dosage$M
 
 cat("Coancestry matrices calculated:\n")
 cat("  Theta.P dimensions:", dim(Theta.P), "\n")
-cat("  The.M dimensions:", dim(The.M), "\n\n")
+cat("  M dimensions:", dim(M), "\n\n")
 
 # Save matrices for future use
 saveRDS(Theta.P, file.path(save_path, "vignette_Theta_P.rds"))
-saveRDS(The.M, file.path(save_path, "vignette_The_M.rds"))
+saveRDS(M, file.path(save_path, "vignette_M.rds"))
 cat("Matrices saved to inst/extdata\n\n")
 
 cat("Step 4: Running lava()\n")
@@ -204,11 +210,14 @@ cat("------------------------------------------------------\n")
 
 results <- lava(
   Theta.P = Theta.P,
-  The.M = The.M,
+  M = M,
   trait_dataframe = trait_df_pop,
   column_individual = "individual",
   column_trait = "trait",
-  save_full_model = FALSE
+  save_full_model = FALSE,
+  iter = 4000,           
+  warmup = 2000,         
+  control = list(adapt_delta = 0.95, max_treedepth = 12)  
 )
 
 cat("\n")
@@ -218,34 +227,9 @@ cat("================================================================\n\n")
 
 print(results)
 
-cat("\n================================================================\n")
-cat("VIGNETTE UPDATE INFORMATION\n")
-cat("================================================================\n\n")
 
-cat("Log ratio summary:\n")
-cat("  Mean:", round(results$log_ratio$mean_log_ratio, 4), "\n")
-cat("  Median:", round(results$log_ratio$median_log_ratio, 4), "\n")
-cat("  95% CI: [", round(results$log_ratio$log_ratio_ci_lower, 4), ", ",
-    round(results$log_ratio$log_ratio_ci_upper, 4), "]\n", sep = "")
-cat("  P-value:", round(results$log_ratio$p_value, 4), "\n\n")
-
-cat("Convergence diagnostics:\n")
-cat("  Divergent transitions:", results$convergence$n_divergent, "\n")
-cat("  Max Rhat:", round(results$convergence$max_rhat, 4), "\n\n")
-
-cat("Results structure:\n")
-cat("  - sampling: ", class(results$sampling), "\n")
-cat("  - log_ratio: list with p_value, mean, median, CIs\n")
-cat("  - hypothesis: formal test results\n")
-cat("  - convergence: n_divergent, max_rhat\n")
-cat("  - trait_name:", results$trait_name, "\n")
-cat("  - formula_used:", results$formula_used, "\n\n")
 
 # Save results
 saveRDS(results, file.path(save_path, "vignette_lava_results.rds"))
 cat("Results saved to inst/extdata/vignette_lava_results.rds\n\n")
 
-cat("================================================================\n")
-cat("DATA GENERATION COMPLETE!\n")
-cat("All files saved to:", save_path, "\n")
-cat("================================================================\n")

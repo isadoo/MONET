@@ -16,3 +16,4 @@ data frame of the block number, the number of rows in the block, and the number 
 This function counts the number of blocks of non-zero rows in a given matrix.
 A block is defined as a contiguous sequence of non-zero rows.
 }
+\keyword{internal}

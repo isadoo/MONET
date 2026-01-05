@@ -3,13 +3,13 @@
 #' @description Given coancestry matrices for between and within populations and a trait data frame, 
 #' this function estimates the log ratio of ancestral variances using a Bayesian mixed-effects model.
 #' 
-#' @usage lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", 
+#' @usage lava(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
 #'             column_population = "population", column_se = NULL, formula_covariates = NULL, 
 #'             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE, ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
 #'
-#' @param The.M A square matrix representing the kinship-based relatedness matrix for individuals.
+#' @param M A square matrix representing the kinship-based relatedness matrix for individuals.
 #'
 #' @param trait_dataframe A data frame containing individual IDs and trait values. 
 #' The first column should be individual IDs, and the second column should be trait values.
@@ -58,7 +58,7 @@
 #'
 #' @export
 lava <- function(Theta.P, 
-                 The.M, 
+                 M, 
                  trait_dataframe, 
                  column_individual = "id", 
                  column_trait = "trait", 
@@ -70,8 +70,8 @@ lava <- function(Theta.P,
                  ...) {
   
   #check input types and dimensions ------------------------
-  if (!is.matrix(Theta.P) || !is.matrix(The.M)) {
-    stop("Theta.P and The.M must be matrices.")
+  if (!is.matrix(Theta.P) || !is.matrix(M)) {
+    stop("Theta.P and M must be matrices.")
   }
   
   if (!is.data.frame(trait_dataframe) || ncol(trait_dataframe) < 2) {
@@ -84,14 +84,14 @@ lava <- function(Theta.P,
   trait_col <- if(is.numeric(column_trait)) column_trait else which(names(trait_dataframe) == column_trait)
   
   #Identify populations per individual
-  population_blocks_df <- counting_blocks_matrix(The.M) #this function counts the number of blocks of non-zero rows in a matrix
+  population_blocks_df <- counting_blocks_matrix(M) #this function counts the number of blocks of non-zero rows in a matrix
   individuals_per_population_F1 <- population_blocks_df$rows
   number_of_blocks <- length(population_blocks_df$block) 
   pop_ids <- rep(1:number_of_blocks, individuals_per_population_F1[1:number_of_blocks]) 
   number_populations <- nrow(Theta.P)
   
   if (number_of_blocks != number_populations & !(column_population %in% names(trait_dataframe))) {
-    warning(paste0("Mismatch between detected groups based on The.M matrix (", number_of_blocks,") and populations in Theta.P dimensions (", number_populations, ")\n
+    warning(paste0("Mismatch between detected groups based on M matrix (", number_of_blocks,") and populations in Theta.P dimensions (", number_populations, ")\n
                    We have have no way of knowing what is the correct number of individuals in each subpopulation."))
   }
   
@@ -167,8 +167,8 @@ lava <- function(Theta.P,
   }
   
   #Build the complete formula
-  base_formula <- "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))"
-  base_rhs <- "(1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))"
+  base_formula <- "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))"
+  base_rhs <- "(1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))"
   rhs <- if (is.null(formula_covariates)) base_rhs else paste0(formula_covariates, " + ", base_rhs)
 
   if (have_se) {
@@ -180,7 +180,7 @@ lava <- function(Theta.P,
   }
 
   if (!is.null(formula_covariates)) {
-    formula_string <- paste0("Y ~ 1 + ", formula_covariates, " + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))")
+    formula_string <- paste0("Y ~ 1 + ", formula_covariates, " + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))")
   } else {
     formula_string <- base_formula
   }
@@ -208,7 +208,7 @@ lava <- function(Theta.P,
     brm(
       formula = model_formula,
       data = dat,
-      data2 = list(two.Theta.P = two.Theta.P, The.M = The.M), 
+      data2 = list(two.Theta.P = two.Theta.P, M = M), 
       iter = iter, warmup = warmup, thin = thin,
       ...
     )

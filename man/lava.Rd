@@ -4,13 +4,14 @@
 \alias{lava}
 \title{lava: Log ratios of ancestral variances}
 \usage{
-lava(Theta.P, The.M, trait_dataframe, column_individual = "id", column_trait = "trait", 
-            column_population = "population", formula_covariates = NULL, ...)
+lava(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
+            column_population = "population", column_se = NULL, formula_covariates = NULL, 
+            iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE, ...)
 }
 \arguments{
 \item{Theta.P}{A square matrix representing the coancestry matrix between populations.}
 
-\item{The.M}{A square matrix representing the kinship-based relatedness matrix for individuals.}
+\item{M}{A square matrix representing the kinship-based relatedness matrix for individuals.}
 
 \item{trait_dataframe}{A data frame containing individual IDs and trait values.
 The first column should be individual IDs, and the second column should be trait values.}
@@ -21,16 +22,31 @@ The first column should be individual IDs, and the second column should be trait
 
 \item{column_population}{The name of the column containing population IDs. Default is "population".}
 
+\item{column_se}{The name of the column containing standard errors of trait values. Default is NULL (no SEs).
+If provided, the function will incorporate measurement error in the model.}
+
 \item{formula_covariates}{A character string specifying additional covariates to include in the model.
 For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).}
+
+\item{iter}{Number of MCMC iterations per chain. Default is 5000.}
+
+\item{warmup}{Number of warmup (burn-in) iterations per chain. Default is 2000.}
+
+\item{thin}{Thinning rate for the MCMC sampler. Default is 2 (every 2nd sample is kept).}
+
+\item{save_full_model}{Logical. If TRUE, saves the full brms model object in the results.
+If FALSE (default), only minimal posterior samples (fixed effects, variance components, and log-ratio) are retained to save memory.}
 
 \item{...}{Additional arguments passed to the brms function.}
 }
 \value{
 A lava type object containing:
-\item{posterior_samples}{A list with posterior samples of variance components and residuals.}
-\item{log_ratio}{A list with the p-value of the log ratios, the mean of the log ratio of between- and within-population variance, and confidence intervals.}
-\item{model}{as an attribute.}
+\item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (var_pop, var_ind), and log_ratio.}
+\item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95\% credible interval bounds).}
+\item{hypothesis}{Results from brms hypothesis test comparing population vs individual variance.}
+\item{trait_name}{Name of the trait column analyzed.}
+\item{formula_used}{The model formula used in the analysis.}
+\item{convergence}{A list containing n_divergent (number of divergent transitions) and max_rhat (maximum R-hat value across parameters).}
 }
 \description{
 Given coancestry matrices for between and within populations and a trait data frame,

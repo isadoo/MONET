@@ -97,7 +97,7 @@ coancestries <- calculate_coancestries(genetic_data_parents = dos_Founders,
                                               column_individual = "individual", 
                                               column_population = "pop_id")
 results <- lava(Theta.P, 
-                The.M, 
+                M, 
                 trait_dataframe = trait_df_pop, 
                 column_individual = "individual", 
                 column_trait = "trait")

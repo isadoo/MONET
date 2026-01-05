@@ -9,7 +9,7 @@
 #'
 #' @return data frame of the block number, the number of rows in the block, and the number of columns in the block
 #'
-#' @export
+#' @keywords internal
 counting_blocks_matrix <- function(mat) {
   n <- nrow(mat)
   blocks <- list()

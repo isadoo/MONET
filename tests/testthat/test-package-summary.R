@@ -38,7 +38,7 @@ test_that("Package function signatures are correct", {
   # lava function
   expect_true(exists("lava"))
   lava_formals <- names(formals(lava))
-  expected_lava_params <- c("Theta.P", "The.M", "trait_dataframe", 
+  expected_lava_params <- c("Theta.P", "M", "trait_dataframe", 
                            "column_individual", "column_trait", "...")
   expect_true(all(expected_lava_params %in% lava_formals))
   

@@ -27,7 +27,7 @@
 #' @param all_parents_genotyped Logical; if TRUE, indicates that the genotyped individuals in "genotyped_parent_populations" are the parents of F1 individuals
 #' 
 #' @return A list containing:
-#' \item{The.M}{A kinship-based relatedness matrix adjusted for F1 individuals.}
+#' \item{M}{A kinship-based relatedness matrix adjusted for F1 individuals.}
 #' \item{Theta.P}{An adjusted population coancestry matrix.}
 #'
 #' @details This function calculates kinship and coancestry measures from genetic data 
@@ -58,15 +58,10 @@ calculate_coancestries <- function(genetic_data_parents,
 
     # Load F1 data and get kinship ------------------------------------------------------ 
     if (!identical(pedigree, NA)) {
-        # Use kinship2::kinship function
-        # The kinship2::kinship function returns kinship coefficients (values 0-0.5)
-        # We need to convert to a relatedness matrix (values 0-1) by multiplying by 2
-        kinship_F1_raw <- kinship2::kinship(id = pedigree$id, 
-                                             dadid = pedigree$sire, 
-                                             momid = pedigree$dam)
-        # Convert kinship coefficients to relatedness matrix and ensure proper format
-        kinship_F1 <- as.matrix(kinship_F1_raw * 2)
-        rownames(kinship_F1) <- colnames(kinship_F1) <- pedigree$id
+        kinship_F1 <- kinship_from_pedigree(pedigree) #internal function from package LAVA
+        #Make sure individuals are arranged by their naming, which ideally follows the population naming
+        #sorted_F1_names <- sort(rownames(kinship_F1))
+        #kinship_F1 <- kinship_F1[sorted_F1_names, sorted_F1_names]
 
         pop_ids_F1 <- pedigree$dam_pop
 
@@ -75,7 +70,7 @@ calculate_coancestries <- function(genetic_data_parents,
         F1_dosage <- genetic_data_F1
        
         matching_matrix_F1 <- hierfstat::matching(F1_dosage) 
-        kinship_F1 <- hierfstat::beta.dosage(matching_matrix_F1, matching = TRUE)
+        kinship_F1 <- hierfstat::beta.dosage(matching_matrix_F1, MATCHING = TRUE)
         F1_id <- population_individual_id[,column_individual]
     } else {
         stop("Missing F1 data, either include pedigree or genetic data")
@@ -87,7 +82,7 @@ calculate_coancestries <- function(genetic_data_parents,
     if (!identical(pedigree, NA)) {
         population_names <- unique(pedigree$dam_pop)
         parent_pop_id <- genotyped_parent_populations #may differ from pedigree
-        #Calculate population sizes for The.M
+        #Calculate population sizes for M
         dam_df <- pedigree %>%
             select(id = dam, population_id = dam_pop) %>%
             distinct()
@@ -126,7 +121,7 @@ calculate_coancestries <- function(genetic_data_parents,
             population_names <- unique(population_individual_id[, column_population])
             parent_pop_id <- genotyped_parent_populations
             F1_pop_id <- population_individual_id[, column_population] 
-            #Calculate population sizes for The.M
+            #Calculate population sizes for M
             population_sizes_P <- as.data.frame(table(parent_pop_id))$Freq
             population_sizes_F1 <- as.data.frame(table(F1_pop_id))$Freq
             population_sizes <- population_sizes_P + population_sizes_F1
@@ -152,7 +147,7 @@ calculate_coancestries <- function(genetic_data_parents,
     #Theta_P calculation -----------------------------------------------------
     #Matching matrix and kinship for parents
     matching_matrix_parents <- hierfstat::matching(parent_dosage)
-    kinship_parents <- hierfstat::beta.dosage(matching_matrix_parents, matching = TRUE)
+    kinship_parents <- hierfstat::beta.dosage(matching_matrix_parents, MATCHING = TRUE)
     fst_founders <- hierfstat::fs.dosage(matching_matrix_parents, pop = parent_pop_id, matching = TRUE)
 
     cat("Calculating Theta.P \n")
@@ -162,8 +157,8 @@ calculate_coancestries <- function(genetic_data_parents,
     # --------------------------------------------------------------------------
 
 
-    # The.M calculation -------------------------------------------------------
-    cat("Calculating The.M \n")
+    # M calculation -------------------------------------------------------
+    cat("Calculating M \n")
     
     # Check if population sizes are correct ----------------------
     total_individuals <- sum(population_sizes)
@@ -218,8 +213,8 @@ calculate_coancestries <- function(genetic_data_parents,
     }
 
     
-    The.M <- matrix(0, nrow = sum(population_sizes_F1), ncol = sum(population_sizes_F1))
-    row.names(The.M) <- colnames(The.M) <- F1_id
+    M <- matrix(0, nrow = sum(population_sizes_F1), ncol = sum(population_sizes_F1))
+    row.names(M) <- colnames(M) <- F1_id
 
 
     for (pop in unique_pops) {
@@ -229,19 +224,19 @@ calculate_coancestries <- function(genetic_data_parents,
         cat("There are", dim_current_population, "individuals in population", pop, "for calculating the M matrix\n")
         kin_block <- hierfstat::kinship2grm(adjusted_kinship_F1)[pop_indices, pop_indices]
         block_adjusted <- kin_block * (1 - Theta_P[pop, pop])
-        The.M[pop_indices, pop_indices] <- block_adjusted
+        M[pop_indices, pop_indices] <- block_adjusted
     }
 
     #The M must be positive definite
-    eigenvalues <- eigen(The.M)$values
+    eigenvalues <- eigen(M)$values
     if (any(eigenvalues < 0)) {
         cat("M matrix not positive definite. \n")
         cat("Minimum eigenvalue is ", min(eigenvalues), "\n")
-        The.M <- as.matrix(Matrix::nearPD(The.M, corr = TRUE)$mat)
+        M <- as.matrix(Matrix::nearPD(M, corr = TRUE)$mat)
         cat("WARNING::M matrix corrected to be positive definite. \n")
     }
 
-    cat("The.M calculated with dimensions ", dim(The.M), "\n")
+    cat("M calculated with dimensions ", dim(M), "\n")
 
-    return(list(The.M = The.M, Theta.P = Theta_P))
+    return(list(M = M, Theta.P = Theta_P))
 }

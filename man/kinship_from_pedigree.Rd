@@ -26,6 +26,9 @@ The matrix represents the relatedness between individuals based on shared parent
 The function computes kinship coefficients under the assumption of non-inbred founders.
 Half-sibling relationships (shared sire or dam) yield a coefficient of \eqn{\frac{1}{4}}.
 If individuals share both parents (full siblings), their kinship coefficient is \eqn{\frac{1}{4} + \frac{1}{4} = \frac{1}{2}}.
+
+Note: This function uses \code{kinship2::kinship()} internally and converts the kinship coefficients
+to a relatedness matrix by multiplying by 2.
 }
 \examples{
 # Create a simple pedigree
@@ -46,3 +49,4 @@ Sinauer Associates.
 \author{
 Isabela do O \email{isabela.doo@unil.ch}
 }
+\keyword{internal}

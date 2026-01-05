@@ -30,7 +30,7 @@ individual ID, dam ID, and sire ID.}
 }
 \value{
 A list containing:
-\item{The.M}{A kinship-based relatedness matrix adjusted for F1 individuals.}
+\item{M}{A kinship-based relatedness matrix adjusted for F1 individuals.}
 \item{Theta.P}{An adjusted population coancestry matrix.}
 }
 \description{

@@ -40,7 +40,7 @@
 #' Lynch, M., & Walsh, B. (1998). Genetics and analysis of quantitative traits. 
 #' Sinauer Associates.
 #' 
-#' @export
+#' @keywords internal
 kinship_from_pedigree <- function(pedigree) {
   
   # Use kinship2::kinship function
