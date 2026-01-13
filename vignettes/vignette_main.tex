@@ -205,11 +205,11 @@ coancestries <- calculate_coancestries(
 
 # Extract matrices
 Theta.P <- coancestries$Theta.P
-The.M <- coancestries$The.M
+M <- coancestries$M
 
 # Confirming matrices dimensions
 dim(Theta.P)  # Should be n_populations x n_populations
-dim(The.M)    # Should be n_individuals x n_individuals
+dim(M)    # Should be n_individuals x n_individuals
 \end{lstlisting}
 
 \subsection{Step 3: Run LogAV Analysis}
@@ -218,7 +218,7 @@ Now you have all the basic requirements to run LAVA.
 # Run LAVA analysis
 result <- lava(
   Theta.P = Theta.P,
-  The.M = The.M,
+  M = M,
   trait_dataframe = trait_data,
   column_individual = "id",
   column_trait = "trait_value"
@@ -276,10 +276,12 @@ calculate_coancestries(genetic_data_parents,
     
     \item \texttt{pedigree}: (Optional) Data frame with columns for individual ID, dam ID, and sire ID. Default \texttt{NA}.
     
-    \item \texttt{all\_parents\_genotyped}: Logical; \texttt{TRUE} if genotyped individuals are the direct parents of F1. Default \texttt{FALSE}.
+    \item \texttt{all\_parents\_genotyped}: Logical; \\
+    if \texttt{TRUE}, indicates that the genotyped individuals in \texttt{genotyped\_parent\_populations} are the parents of F1 individuals.\\
+    Default is \texttt{FALSE}.
 \end{itemize}
 
-\textbf{Returns:} List with components \texttt{Theta.P} (population coancestry matrix) and \texttt{The.M} (individual relatedness matrix).
+\textbf{Returns:} List with components \texttt{Theta.P} (population coancestry matrix) and \texttt{M} (individual relatedness matrix).
 
 \subsection{lava()}
 
@@ -287,11 +289,11 @@ Performs the LogAV analysis to test for local adaptation.
 
 \begin{lstlisting}
 lava(Theta.P, 
-     The.M, 
+     M, 
      trait_dataframe, 
      column_individual = "id", 
      column_trait = "trait", 
-     formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))", 
+     formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))", 
      ...)
 \end{lstlisting}
 
@@ -300,7 +302,7 @@ lava(Theta.P,
 \begin{itemize}
     \item \texttt{Theta.P}: Square matrix of population coancestries (from \texttt{calculate\_coancestries()}).
     
-    \item \texttt{The.M}: Square matrix of individual relatedness (from \texttt{calculate\_coancestries()}).
+    \item \texttt{M}: Square matrix of individual relatedness (from \texttt{calculate\_coancestries()}).
     
     \item \texttt{trait\_dataframe}: Data frame with individual IDs and trait values.
     
@@ -325,7 +327,7 @@ The example dataset comes from a simulated metapopulation:
 
 \begin{itemize}
 \item \textbf{Founder populations}: 18 subpopulations in 1-dimensional stepping-stone structure
-\item \textbf{Evolutionary history}: 3000 generations in environmental cline creating selection gradient
+\item \textbf{Evolutionary history}: 3000 generations in an environmental gradient we refer to as "sine"-like creating selection gradient, as shown in Figure \ref{fig:SSsine}
 \item \textbf{Breeding design}: Controlled common garden with a North Carolina II design (add reference)
   \begin{itemize}
   \item Within-population crosses to preserve population structure
@@ -340,6 +342,13 @@ The example dataset comes from a simulated metapopulation:
   \item Trait centered and standardized
   \end{itemize}
 \end{itemize}
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.8\linewidth]{figures/methods_SS_sine.png}
+    \caption{Sine-like environmental gradient across the 18 stepping-stone populations. The figure shows the environmental selection gradient that drove local adaptation in the simulated metapopulation over 3000 generations.}
+    \label{fig:SSsine}
+\end{figure}
 
 \subsection{Step 1: Loading genetic data}
 \begin{lstlisting}
@@ -448,13 +457,13 @@ coancestries_dosage <- calculate_coancestries(
 )
 # When you run this function, it will print out some information 
 # on the subpopulations.
-# This should yield PD Theta.P and The.M matrices.
-# The.M should have size 1000x1000.
+# This should yield PD Theta.P and M matrices.
+# M should have size 1000x1000.
 # Theta.P should be 20 by 20.
 
 # Extract matrices
 Theta.P <- coancestries_dosage$Theta.P
-The.M <- coancestries_dosage$The.M
+M <- coancestries_dosage$M
 \end{lstlisting}
 
 \subsection{Step 5: Visualizing coancestries}
@@ -469,7 +478,7 @@ heatmap(Theta.P, Rowv = NA, Colv = NA)
 \end{figure}
 
 \begin{lstlisting}
-heatmap(The.M, Rowv = NA, Colv = NA)
+heatmap(M, Rowv = NA, Colv = NA)
 \end{lstlisting}
 \begin{figure}
     \centering
@@ -483,7 +492,7 @@ heatmap(The.M, Rowv = NA, Colv = NA)
 # Run LAVA analysis
 result <- lava(
   Theta.P = Theta.P,
-  The.M = The.M,
+  M = M,
   trait_dataframe = trait_df_pop,
   column_individual = "individual",
   column_trait = "trait"
@@ -495,7 +504,7 @@ result <- lava(
 === Model Summary ===
  Family: gaussian 
   Links: mu = identity 
-Formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M)) 
+Formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)) 
    Data: dat (Number of observations: 1000) 
   Draws: 4 chains, each with iter = 5000; warmup = 2000; thin = 2;
          total post-warmup draws = 6000
@@ -605,7 +614,7 @@ By default, LAVA saves only a minimal subset of posterior samples to reduce memo
 # Run with save_full_model = TRUE
 result_full <- lava(
   Theta.P = Theta.P,
-  The.M = The.M,
+  M = M,
   trait_dataframe = trait_df_pop,
   column_individual = "individual",
   column_trait = "trait",
@@ -661,17 +670,17 @@ posterior::as_draws_df(result_full$sampling)  # All posterior draws
 
 \begin{lstlisting}
     lava <- function(Theta.P, 
-                The.M, 
+                M, 
                 trait_dataframe, 
                 column_individual = "id", 
                 column_trait = "trait", 
-                formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))", ...)
+                formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))", ...)
 \end{lstlisting}
 
 \begin{itemize}
     \item \texttt{Theta.P}: A square matrix representing the coancestry matrix between populations.
     
-    \item \texttt{The.M}: A square matrix representing the kinship-based relatedness matrix for individuals.
+    \item \texttt{M}: A square matrix representing the kinship-based relatedness matrix for individuals.
     
     \item \texttt{trait\_dataframe}: A data frame containing individual IDs and trait values. The first column should be individual IDs, and the second column should be trait values.
     
@@ -679,7 +688,7 @@ posterior::as_draws_df(result_full$sampling)  # All posterior draws
     
     \item \texttt{column\_trait}: The name of the column containing trait values in the trait data frame. Default is \texttt{"trait"}.
     
-    \item \texttt{formula}: A formula specifying the model structure for the Bayesian mixed-effects model. Default is \texttt{"Y \textasciitilde{} 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = The.M))"}.
+    \item \texttt{formula}: A formula specifying the model structure for the Bayesian mixed-effects model. Default is \texttt{"Y \textasciitilde{} 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))"}.
     
     \item \texttt{...}: Additional arguments passed to the \texttt{brms} function for model fitting.
 \end{itemize}
@@ -718,7 +727,7 @@ results_list <- list()
 for (trait in traits) {
   results_list[[trait]] <- lava(
     Theta.P = Theta.P,
-    The.M = The.M,
+    M = M,
     trait_dataframe = multi_trait_data,
     column_individual = "id",
     column_trait = trait
@@ -736,7 +745,7 @@ sapply(results_list, function(x) x$log_ratio$p_value)
 \subsubsection{Matrix Not Positive Definite}
 \begin{lstlisting}
 # Check eigenvalues
-eigenvalues <- eigen(The.M)$values
+eigenvalues <- eigen(M)$values
 if(any(eigenvalues < 0)) {
   cat("Minimum eigenvalue:", min(eigenvalues), "\n")
   # Consider data quality or increase sample size
@@ -751,7 +760,7 @@ Ensure population IDs are consistent across all data sources. And ensure that th
 # Increase iterations for better convergence
 result <- lava(
   Theta.P = Theta.P,
-  The.M = The.M,
+  M = M,
   trait_dataframe = trait_data,
   iter = 4000,
   warmup = 2000,
@@ -873,7 +882,7 @@ behavioral_traits <- c("aggression", "risk_taking")
 # Analyze each trait
 morph_results <- lapply(morphological_traits, function(trait) {
   lava(Theta.P = stickleback_Theta.P,
-       The.M = stickleback_The.M,
+       M = stickleback_M,
        trait_dataframe = stickleback_traits,
        column_trait = trait)
 })
