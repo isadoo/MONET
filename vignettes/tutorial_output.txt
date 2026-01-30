@@ -1,0 +1,22 @@
+Warning message:
+S3 method ‘print.lava’ was declared in NAMESPACE but not found 
+Loading required package: Rcpp
+Loading 'brms' package (version 2.23.0). Useful instructions
+can be found by typing help('brms'). A more detailed introduction
+to the package is available through vignette('brms_overview').
+
+Attaching package: ‘brms’
+
+The following object is masked from ‘package:stats’:
+
+    ar
+
+================================================================
+LAVA VIGNETTE TUTORIAL - OUTPUTS FOR DOCUMENTATION
+================================================================
+
+Step 1: Load genetic data (neutral markers in dosage format)
+------------------------------------------------------
+Error in scan(fname, n = 4) : scan() expected 'a real', got 'dos'
+Calls: <Anonymous> -> scan
+Execution halted

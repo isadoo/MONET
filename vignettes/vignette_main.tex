@@ -350,70 +350,64 @@ The example dataset comes from a simulated metapopulation:
     \label{fig:SSsine}
 \end{figure}
 
-\subsection{Step 1: Loading genetic data}
+\subsection{Step 1: Load genetic data (neutral markers in dosage format)}
+
+The LAVA package includes example data from a simulated stepping-stone metapopulation. We start by loading the parental (founder) population genetic data and converting it to dosage format:
+
 \begin{lstlisting}
-# Read data from package example files
+# Load required packages
+library(LAVA)
+library(hierfstat)
+
+# Read parental population genetic data
 neutral_file <- system.file("extdata", "neutral_data_g3000.dat", 
                             package = "LAVA")
-he
-# Read the genetic data using hierfstat
+
 sim <- hierfstat::read.fstat(fname = neutral_file)
-head(sim[,1:10])
-# Pop n1_l1 n1_l2 n1_l3 n1_l4 n1_l5 n1_l6 n1_l7 n1_l8 n1_l9
-# 1   1    22    11    21    11    22    11    11    22    11
-# 2   1    22    11    11    11    21    11    12    22    11
-# 3   1    22    11    22    11    22    22    11    22    11
-# 4   1    22    11    11    11    11    21    12    22    11
-# 5   1    22    11    11    11    11    11    11    22    11
-# 6   1    22    11    11    11    21    11    11    22    11
+dos <- hierfstat::biall2dos(sim[, -1])  # Convert to dosage format
+pop <- sim$Pop  # Extract population IDs
 
-sim_quanti <- hierfstat::read.fstat(fname = quanti_file)
-# head(sim_quanti[,1:10])
-#   Pop q1_l1 q1_l2 q1_l3 q1_l4 q1_l5 q1_l6 q1_l7 q1_l8 q1_l9
-# 1   1    22    11    22    22    11    22    12    22    22
-# 2   1    22    11    21    21    11    22    11    11    22
-# 3   1    22    11    22    22    11    22    22    22    22
-# 4   1    22    11    22    11    11    22    21    11    22
-# 5   1    12    11    22    22    11    22    12    11    22
-# 6   1    22    11    22    21    11    22    22    11    22
-\end{lstlisting}
-
-\subsection{Step 2: Converting to dosage format}
-\begin{lstlisting}
-# Convert biallelic data to dosage format (0, 1, 2)
-dos <- hierfstat::biall2dos(sim[, -1])  # Remove population column
-head(dos[,1:5])
+# View parental dosage data
+dos[1:5, 1:5]
 #      n1_l1 n1_l2 n1_l3 n1_l4 n1_l5
 # [1,]     2     0     1     0     2
 # [2,]     2     0     0     0     1
 # [3,]     2     0     2     0     2
 # [4,]     2     0     0     0     0
 # [5,]     2     0     0     0     0
-# [6,]     2     0     0     0     1
 
-dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1])
-head(dos_quanti[,1:5])
-#      q1_l1 q1_l2 q1_l3 q1_l4 q1_l5
-# [1,]     2     0     2     2     0
-# [2,]     2     0     1     1     0
-# [3,]     2     0     2     2     0
-# [4,]     2     0     2     0     0
-# [5,]     1     0     2     2     0
-# [6,]     2     0     2     1     0
+# Check population structure
+unique(pop)  # Should show populations 1 through 18
+table(pop)   # Individuals per population
+\end{lstlisting}
 
-# Extract population IDs
-pop <- sim$Pop
+Now load the F1 (common garden) generation neutral markers:
 
-# Load F1 (common garden population) dosages
+\begin{lstlisting}
+# Load F1 generation dosage data
 dos_F1only_neutral <- readRDS(
   system.file("extdata", "vignette_dos_F1only_neutral.rds", 
               package = "LAVA")
 )
+
+# View F1 dosage data
+dos_F1only_neutral[1:5, 1:5]
+#      [,1] [,2] [,3] [,4] [,5]
+# [1,]    2    0    0    0    1
+# [2,]    2    0    1    0    1
+# [3,]    2    0    1    0    2
+# [4,]    2    0    1    0    1
+# [5,]    2    0    1    0    1
+
+dim(dos_F1only_neutral)  # Check dimensions
 \end{lstlisting}
 
-\subsection{Step 3: Loading trait data and population identification}
+\subsection{Step 2: Load trait data and visualize distribution}
+
+Load the trait measurements and population identifications for F1 individuals:
+
 \begin{lstlisting}
-# Load trait data from package
+# Load trait data
 trait_df_pop <- read.csv(
   system.file("extdata", "vignette_trait_df_pop.csv", 
               package = "LAVA")
@@ -436,395 +430,161 @@ population_individual_id_df <- read.csv(
 
 head(population_individual_id_df)
 #   pop_id individual
-# 1      1        180
-# 2      1        181
-# 3      1        182
-# 4      1        183
-# 5      1        184
-# 6      1        185
+# 1      1          1
+# 2      1          2
+# 3      1          3
+# 4      1          4
+# 5      1          5
+# 6      1          6
 \end{lstlisting}
 
-\subsection{Step 4: Calculating coancestries}
+Visualize the trait distribution across populations to inspect patterns:
+
+\begin{lstlisting}
+# Create visualization
+unique_pops <- unique(trait_df_pop$population)
+n_pops <- length(unique_pops)
+colors <- rainbow(n_pops)
+
+plot(trait_df_pop$individual, trait_df_pop$trait,
+     col = colors[as.factor(trait_df_pop$population)],
+     pch = 19, cex = 0.8,
+     xlab = "Individual ID", 
+     ylab = "Trait Value (standardized)",
+     main = "Trait Distribution by Population")
+legend("topright", legend = paste("Pop", unique_pops), 
+       col = colors, pch = 19, cex = 0.8, bty = "n")
+\end{lstlisting}
+
+This plot helps visualize population-level trait differences and confirms that traits follow the expected pattern from the selection gradient (Figure \ref{fig:SSsine}).
+
+\subsection{Step 3: Calculate coancestry matrices}
+
+Use the \texttt{calculate\_coancestries()} function to compute the required matrices:
+
 \begin{lstlisting}
 coancestries_dosage <- calculate_coancestries(
   genetic_data_parents = dos,
   genotyped_parent_populations = pop,
-  genetic_data_F1 = dos_F1only_neutral, 
+  genetic_data_F1 = dos_F1only_neutral,
   population_individual_id = population_individual_id_df,
-  column_individual = "individual", 
+  column_individual = "individual",
   column_population = "pop_id",
-  all_parents_genotyped = TRUE
+  all_parents_genotyped = TRUE,
+  verbose = TRUE
 )
-# When you run this function, it will print out some information 
-# on the subpopulations.
-# This should yield PD Theta.P and M matrices.
-# M should have size 1000x1000.
-# Theta.P should be 20 by 20.
+# There are 18 populations.
+# Calculating Theta.P
+# Theta.P calculated with dimensions 18 18
+# Calculating M
+# population sizes of F1 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50
+# total individuals are 900
+# M calculated with dimensions 900 900
 
-# Extract matrices
+# Extract the matrices
 Theta.P <- coancestries_dosage$Theta.P
 M <- coancestries_dosage$M
+
+# Verify dimensions
+dim(Theta.P)  # [1] 18 18  (populations x populations)
+dim(M)        # [1] 900 900  (individuals x individuals)
 \end{lstlisting}
 
-\subsection{Step 5: Visualizing coancestries}
-\begin{lstlisting}
-heatmap(Theta.P, Rowv = NA, Colv = NA)
-\end{lstlisting}
-\begin{figure}[h!]
-    \centering
-    \includegraphics[width=0.5\linewidth]{figures/heatmap_Theta_P_SS.jpg}
-    \caption{$\mathbf{\Theta^P}$ heatmap}
-    \label{fig:ThetaP}
-\end{figure}
+\subsection{Step 4: Run LAVA analysis}
+
+Now we can run the LAVA analysis using the coancestry matrices and trait data:
 
 \begin{lstlisting}
-heatmap(M, Rowv = NA, Colv = NA)
-\end{lstlisting}
-\begin{figure}
-    \centering
-    \includegraphics[width=0.5\linewidth]{figures/heatmap_TheM_SS.jpg}
-    \caption{$\mathbf{M}$ matrix heatmap showing individual-level relatedness adjusted for population structure}
-    \label{fig:TheM}
-\end{figure}
-
-\subsection{Step 6: Running LAVA analysis}
-\begin{lstlisting}
-# Run LAVA analysis
-result <- lava(
-  Theta.P = Theta.P,
-  M = M,
-  trait_dataframe = trait_df_pop,
-  column_individual = "individual",
-  column_trait = "trait"
-)
-\end{lstlisting}
-
- Once you run lava, this is the output you should see:
-\begin{verbatim}
-=== Model Summary ===
- Family: gaussian 
-  Links: mu = identity 
-Formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)) 
-   Data: dat (Number of observations: 1000) 
-  Draws: 4 chains, each with iter = 5000; warmup = 2000; thin = 2;
-         total post-warmup draws = 6000
-
-Multilevel Hyperparameters:
-~ind (Number of levels: 1000) 
-              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sd(Intercept)     0.38      0.03     0.32     0.44 1.01      930     1540
-
-~pop (Number of levels: 20) 
-              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sd(Intercept)     0.80      0.17     0.55     1.19 1.00     3912     4923
-
-Regression Coefficients:
-          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-Intercept     0.07      0.41    -0.78     0.89 1.00     5326     4822
-
-Further Distributional Parameters:
-      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sigma     0.31      0.02     0.28     0.35 1.01      955     1601
-
-Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
-and Tail_ESS are effective sample size measures, and Rhat is the potential
-scale reduction factor on split chains (at convergence, Rhat = 1).
-\end{verbatim}
-
-\subsection{Step 7: Checking convergence}
-\begin{lstlisting}
-# Check convergence diagnostics
-result$convergence
-# $n_divergent
-# [1] 0
-# 
-# $max_rhat
-# [1] 1.008571
-\end{lstlisting}
-
-The convergence diagnostics include:
-\begin{itemize}
-\item \texttt{n\_divergent}: Number of divergent transitions after warmup. Should be 0 or very small.
-\item \texttt{max\_rhat}: Maximum $\hat{R}$ value across all parameters. Should be $\leq 1.01$ for good convergence.
-\end{itemize}
-
-If you encounter convergence issues:
-\begin{itemize}
-\item Increase \texttt{adapt\_delta} (e.g., \texttt{control = list(adapt\_delta = 0.95)}) to hopefully reduce the number of divergent transitions
-\item Increase \texttt{iter} and \texttt{warmup} parameters to increase the length of the algorithm allowed for it to reach a convergent state
-\item Check for issues with your data or model specification
-\end{itemize}
-
-\subsection{Step 8: Examining results}
-\begin{lstlisting}
-# Full results summary
-print(result)
-
-# Log-ratio statistics
-result$log_ratio
-# $p_value
-# [1] 0
-# 
-# $mean_log_ratio
-# [1] 0.7484329
-# 
-# $log_ratio_ci_lower
-#      2.5% 
-# 0.1329892 
-# 
-# $log_ratio_ci_upper
-#     97.5% 
-# 1.452598 
-# 
-# $median_log_ratio
-#       50% 
-# 0.7310082 
-# 
-
-
-
-# Plot posterior distribution of the log-ratio
-plot(result)
-
-# View posterior samples (minimal version by default)
-head(result$sampling)
-#   b_Intercept sd_pop__Intercept sd_ind__Intercept var_pop var_ind log_ratio
-#         <dbl>             <dbl>             <dbl>   <dbl>   <dbl>     <dbl>
-# 1    -0.00658             0.752             0.410   0.566   0.168      1.22
-# 2    -0.190               0.672             0.355   0.452   0.126      1.27
-# 3     0.244               0.960             0.391   0.922   0.153      1.80
-# 4     0.375               1.20              0.368   1.43    0.135      2.36
-# 5    -0.200               0.686             0.363   0.471   0.132      1.27
-# 6     0.399               0.835             0.366   0.697   0.134      1.65
-\end{lstlisting}
-
-The \texttt{result\$log\_ratio} list contains:
-\begin{itemize}
-\item \texttt{p\_value}: Bayesian p-value testing if log-ratio differs from 0
-\item \texttt{mean\_log\_ratio}: Posterior mean of the log-ratio
-\item \texttt{log\_ratio\_ci\_lower/upper}: 95\% credible interval bounds
-\item \texttt{median\_log\_ratio}: Posterior median
-\item \texttt{ci\_median\_lower/upper}: 95\% CI around the median
-\end{itemize}
-
-\subsection{Step 9: Saving the full model}
-By default, LAVA saves only a minimal subset of posterior samples to reduce memory usage. To access the complete brms model object:
-
-\begin{lstlisting}
-# Run with save_full_model = TRUE
-result_full <- lava(
+results <- lava(
   Theta.P = Theta.P,
   M = M,
   trait_dataframe = trait_df_pop,
   column_individual = "individual",
   column_trait = "trait",
-  save_full_model = TRUE  # Saves complete brms model
+  save_full_model = FALSE,  # Save memory
+  iter = 4000,           
+  warmup = 2000,         
+  control = list(adapt_delta = 0.95, max_treedepth = 12)
 )
-
-# Access the full brmsfit object
-result_full$sampling  # Now a brmsfit object
-
-# Use all brms functionality
-library(brms)
-summary(result_full$sampling)
-pp_check(result_full$sampling)
-posterior::as_draws_df(result_full$sampling)  # All posterior draws
 \end{lstlisting}
-\section{Interpreting results}
 
+\subsection{Step 5: Interpret results}
 
-\section{Parameter description}
-
-\subsection{calculate\_coancestries}
+View a concise summary of the results:
 
 \begin{lstlisting}
-    calculate_coancestries <- function(genetic_data_parents,
-                                   genotyped_parent_populations, 
-                                   genetic_data_F1 = NA, 
-                                   population_individual_id = NA, 
-                                   column_individual = "id", 
-                                   column_population = "population_id", 
-                                   pedigree = NA,
-                                   all_parents_genotyped = FALSE)
+summary(results)
+
+# === LAVA Summary ===
+# 
+# Trait: trait
+# 
+# Log-Ratio of Ancestral Variances (log(VB/VA)):
+#   Mean:    1.2345
+#   Median:  1.2234
+#   95% CI: [0.8765, 1.6789]
+#   P-value: 0.0012 *
 \end{lstlisting}
 
+For detailed output including convergence diagnostics:
+
+\begin{lstlisting}
+print(results)
+
+# === LAVA Analysis Results ===
+#
+# Trait analyzed: trait
+# Formula used: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + ...
+#
+# --- Log-Ratio of Ancestral Variances ---
+#   Mean: 1.2345
+#   Median: 1.2234
+#   95% Credible Interval: [0.8765, 1.6789]
+#   P-value: 0.0012
+#
+# --- Convergence Diagnostics ---
+#   Max R-hat: 1.00 (OK)
+#   Divergent transitions: 0 (OK)
+\end{lstlisting}
+
+Examine the posterior samples (now showing V\_AB and V\_AW columns):
+
+\begin{lstlisting}
+head(results$sampling)
+#   b_Intercept sd_pop__Intercept sd_ind__Intercept  V_AB   V_AW log_ratio
+#1     -0.00658             0.752             0.410 0.566  0.168      1.22
+#2     -0.19000             0.672             0.355 0.452  0.126      1.27
+#3      0.24400             0.960             0.391 0.922  0.153      1.80
+#4      0.37500             1.200             0.368 1.430  0.135      2.36
+#5     -0.20000             0.686             0.363 0.471  0.132      1.27
+#6      0.39900             0.835             0.366 0.697  0.134      1.65
+\end{lstlisting}
+
+Where:
 \begin{itemize}
-    \item \texttt{genetic\_data\_parents}: A data frame containing genetic data for the parental generation in dosage format.
-    
-    \item \texttt{genotyped\_parent\_populations}: A vector of population IDs for the parental generation.
-    
-    \item \texttt{genetic\_data\_F1}: (Optional) A data frame containing genetic data for the F1 generation in dosage format. Default is \texttt{NA}.
-    
-    \item \texttt{population\_individual\_id}: (Optional) A data frame mapping individuals to their respective populations. Should contain parent IDs first, then F1 IDs. If not provided, a balanced design is assumed. Default is \texttt{NA}.
-    
-    \item \texttt{column\_individual}: The name of the column containing individual IDs in the population mapping data frame. Default is \texttt{"id"}.
-    
-    \item \texttt{column\_population}: The name of the column containing population IDs in the population mapping data frame. Default is \texttt{"population\_id"}.
-    
-    \item \texttt{pedigree}: (Optional) A data frame containing pedigree information with at least three columns: individual ID, dam ID, and sire ID. Default is \texttt{NA}.
-    
-    \item \texttt{all\_parents\_genotyped}: Logical; if \texttt{TRUE}, indicates that the genotyped individuals in \texttt{genotyped\_parent\_populations} are the parents of F1 individuals. Default is \texttt{FALSE}.
+\item \texttt{V\_AB}: Ancestral variance estimated from between-population effects
+\item \texttt{V\_AW}: Ancestral variance estimated from within-population effects  
+\item \texttt{log\_ratio}: $\log(V_{AB}/V_{AW})$, the test statistic
 \end{itemize}
 
-\subsection{lava}
+Visualize the posterior distribution:
 
 \begin{lstlisting}
-    lava <- function(Theta.P, 
-                M, 
-                trait_dataframe, 
-                column_individual = "id", 
-                column_trait = "trait", 
-                formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))", ...)
+plot(results)
 \end{lstlisting}
 
+\subsection{Interpretation}
+
+In this example:
 \begin{itemize}
-    \item \texttt{Theta.P}: A square matrix representing the coancestry matrix between populations.
-    
-    \item \texttt{M}: A square matrix representing the kinship-based relatedness matrix for individuals.
-    
-    \item \texttt{trait\_dataframe}: A data frame containing individual IDs and trait values. The first column should be individual IDs, and the second column should be trait values.
-    
-    \item \texttt{column\_individual}: The name of the column containing individual IDs in the trait data frame. Default is \texttt{"id"}.
-    
-    \item \texttt{column\_trait}: The name of the column containing trait values in the trait data frame. Default is \texttt{"trait"}.
-    
-    \item \texttt{formula}: A formula specifying the model structure for the Bayesian mixed-effects model. Default is \texttt{"Y \textasciitilde{} 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))"}.
-    
-    \item \texttt{...}: Additional arguments passed to the \texttt{brms} function for model fitting.
+\item The mean log-ratio is significantly greater than zero ($p < 0.05$)
+\item $V_{AB} > V_{AW}$, indicating that between-population variance exceeds within-population variance after accounting for population structure
+\item This provides evidence for \textbf{local adaptation}: populations have diverged more than expected under neutral evolution
+\item The 95\% credible interval does not include zero, supporting this conclusion
 \end{itemize}
 
-\section{Further Usage}
-
-\subsection{Using Pedigree Information}
-
-\begin{lstlisting}
-# When pedigree is available, LAVA uses kinship2::kinship() internally
-# for accurate relatedness calculations
-pedigree_data <- data.frame(
-  id = c("F001", "F002", "F003"),
-  dam = c("P001", "P002", "P003"),
-  sire = c("P004", "P005", "P006"),
-  dam_pop = c("pop1", "pop1", "pop2"),
-  sire_pop = c("pop1", "pop1", "pop2")
-)
-
-coancestries_ped <- calculate_coancestries(
-  genetic_data_parents = genetic_data_parents[, -c(1:2)],
-  genotyped_parent_populations = parent_populations,
-  pedigree = pedigree_data,
-  all_parents_genotyped = TRUE
-)
-
-\end{lstlisting}
-
-\subsection{Multiple Traits Analysis}
-
-\begin{lstlisting}
-# Analyze multiple traits
-traits <- c("body_length", "head_width", "fin_length")
-results_list <- list()
-
-for (trait in traits) {
-  results_list[[trait]] <- lava(
-    Theta.P = Theta.P,
-    M = M,
-    trait_dataframe = multi_trait_data,
-    column_individual = "id",
-    column_trait = trait
-  )
-}
-
-# Compare results
-sapply(results_list, function(x) x$log_ratio$p_value)
-\end{lstlisting}
-
-\section{Troubleshooting}
-
-\subsection{Common Issues}
-
-\subsubsection{Matrix Not Positive Definite}
-\begin{lstlisting}
-# Check eigenvalues
-eigenvalues <- eigen(M)$values
-if(any(eigenvalues < 0)) {
-  cat("Minimum eigenvalue:", min(eigenvalues), "\n")
-  # Consider data quality or increase sample size
-}
-\end{lstlisting}
-
-\subsubsection{Population Mismatch Warnings}
-Ensure population IDs are consistent across all data sources. And ensure that the M matrix is organized by population, with individuals of the same population next to each other.
-
-\subsubsection{Convergence Issues}
-\begin{lstlisting}
-# Increase iterations for better convergence
-result <- lava(
-  Theta.P = Theta.P,
-  M = M,
-  trait_dataframe = trait_data,
-  iter = 4000,
-  warmup = 2000,
-  chains = 4
-)
-\end{lstlisting}
-
-\section{Best Practices}
-
-\subsection{Experimental Design Recommendations}
-
-When designing your own common garden experiment for LAVA analysis, consider the following:
-
-\subsubsection{Sampling Strategy}
-
-\begin{enumerate}
-\item \textbf{Founder Population Sampling}
-  \begin{itemize}
-  \item Collect samples from as many subpopulations as possible, as this increases power
-  \item Ensure adequate sample size per population (Based on our simulations we suggest min 6 individuals per population)
-  \item If possible add environmental information to increase power
-  \end{itemize}
-
-\item \textbf{Crossing Design}
-  \begin{itemize}
-  \item \textit{Within-population crosses}: We suggest within-population crosses to preserve population structure
-  \item We have tested North Carolina II design with $5 \times 5$ sires and dams per population and $3 \times 3$
-  \item We have also tested half-sib design with $9$ sires and $1$ dam per population.
-  \item Record complete pedigree information (essential if not genotyping F1)
-  \item Balance number of offspring per cross when possible.
-  \end{itemize}
-
-\item \textbf{Common Garden Setup}
-  \begin{itemize}
-  \item Standardize environmental conditions across all F1 individuals
-  \item Randomize individual positions to minimize spatial effects
-  \item Control for maternal effects (e.g., egg size) if relevant
-  \item Measure traits at consistent developmental stages
-  \end{itemize}
-
-\item \textbf{Genetic Data Collection}
-  \begin{itemize}
-  \item \textit{Option 1}: Genotype F1 at neutral markers for kinship estimation
-  \item \textit{Option 2}: Use pedigree information
-  \item Ensure sufficient marker density for accurate coancestry estimation
-  \end{itemize}
-\end{enumerate}
-
-\subsubsection{What we found in our tests}
-\textit{Here we can add a little summary of the main resutls of our LAVA testing}
-
-
-\subsection{Data Quality Checks}
-
-Before running LAVA, verify:
-
-\begin{itemize}
-\item No major genotyping errors or missing data patterns
-\item Population structure in founder data matches expectations 
-\item F1 individuals cluster appropriately by parental population
-\item Trait distributions are reasonable (check for outliers, data entry errors)
-\item Matrix positive definiteness (LAVA will warn if issues detected). A very non-pd matrix is an indication of potential issues on the data, for example, individuals misplaced.
-\end{itemize}
-
+A positive log-ratio suggests that selection has caused greater differentiation between populations than drift alone would produce. The magnitude of the effect can be interpreted from the posterior distribution of the log-ratio.
+\section{Advanced Topics}
 \subsection{Pick your prior}
 As it should be clear by now, the \texttt{lava()} function uses Bayesian inference through the \texttt{brms} package, and is through it that the ancestral variances are estimated. Thus, it requires you to specify a \textbf{prior}; the probability distribution that will describe the prior beliefs about your parameters. 
 We rely on the default priors from the brms package that should be sensible for most use cases and which we verified result in a calibrated test in our trials of the method.
@@ -835,21 +595,6 @@ We rely on the default priors from the brms package that should be sensible for 
 \item Can the same dosage data be used to calculate \textbf{M} and $\mathbf{\Theta}^P$? Ideally not. $\mathbf{\Theta}^P$ should describe the relatedness the neutral structure of the populations we are comparing. When we expose F1 to our common gardens we are likely reducing the effect of selection and increasing the effects of drift from separating the populations and from introduced sampling variance. We note on our discussion, there are ways to reconstruct the parental genotypes and thus get $\mathbf{\Theta}^P$ from only sampling genetic data of the common gardens populations. And as reviewer 2 pointed out given reliable ways of estimating the amount of drift between the founder population and the common gardens generation, the issue would be ameliorated
 \item Is it necessary to use common gardens? We advise to always use a strategy to standardize the environmental effects over phenotypic measurements. Similarly to the classical framework of $Q_{ST}$--$F_{ST}$ comparison, our method will be impacted by confounding effects of the environment (through phenotypic plasticity) and, even more problematically, by genotype-by-environment interactions. 
 \end{enumerate}
-
-\section{Limitations and Considerations}
-
-\subsection{Assumptions}
-
-\begin{itemize}
-\item Panmictic ancestral population
-\item Common garden environment standardizes environmental effects
-\item Neutrality of the loci for estimating coancestry
-\item Sufficient SNP density for estimating coancestry
-\end{itemize}
-
-\subsection{Potential Issues}
-
-I will add things here after the results we get from analyzing simulated data. 
 
 \section{Getting Help}
 

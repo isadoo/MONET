@@ -14,6 +14,7 @@
 ^CRAN-RELEASE$
 ^CRAN-SUBMISSION$
 ^\.vscode$
+^\.venv$
 ^\.github$
 ^man/figures$
 ^doc$

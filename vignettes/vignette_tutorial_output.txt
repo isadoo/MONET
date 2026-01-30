@@ -1,0 +1,15 @@
+Warning message:
+S3 method ‘print.lava’ was declared in NAMESPACE but not found 
+Loading required package: Rcpp
+Loading 'brms' package (version 2.23.0). Useful instructions
+can be found by typing help('brms'). A more detailed introduction
+to the package is available through vignette('brms_overview').
+
+Attaching package: ‘brms’
+
+The following object is masked from ‘package:stats’:
+
+    ar
+
+Error in library(JGTeach) : there is no package called ‘JGTeach’
+Execution halted

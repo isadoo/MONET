@@ -22,7 +22,6 @@ Imports:
     brms,
     hierfstat,
     kinship2,
-    JGTeach,
     gaston,
     Matrix,
     dplyr,

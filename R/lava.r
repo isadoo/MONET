@@ -38,7 +38,7 @@
 #' @param ... Additional arguments passed to the brms function.
 #'
 #' @return A lava type object containing:
-#' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (var_pop, var_ind), and log_ratio.}
+#' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (V_AB, V_AW), and log_ratio.}
 #' \item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds).}
 #' \item{hypothesis}{Results from brms hypothesis test comparing population vs individual variance.}
 #' \item{trait_name}{Name of the trait column analyzed.}
@@ -254,9 +254,9 @@ have_sd <- sd_cols[sd_cols %in% names(all_draws)]
 
 if (length(have_sd) == 2) {
   minimal_samples <- all_draws[, unique(c(fe_cols, have_sd)), drop = FALSE]
-  minimal_samples$var_pop  <- minimal_samples$sd_pop__Intercept^2
-  minimal_samples$var_ind  <- minimal_samples$sd_ind__Intercept^2
-  minimal_samples$log_ratio <- log(minimal_samples$var_pop / minimal_samples$var_ind)
+  minimal_samples$V_AB  <- minimal_samples$sd_pop__Intercept^2
+  minimal_samples$V_AW  <- minimal_samples$sd_ind__Intercept^2
+  minimal_samples$log_ratio <- log(minimal_samples$V_AB / minimal_samples$V_AW)
 } else {
   warning("Issue with your model - to use lava you should get a sd_pop__Intercept and sd_ind__Intercept in draws in order to have a log-ratio; minimal samples include only fixed effects.")
 }
@@ -332,6 +332,25 @@ print.lava <- function(x, ...) {
   cat("\nUse plot() to visualize the posterior distribution.\n\n")
   invisible(x)
 }
+
+#' @export
+summary.lava <- function(object, ...) {
+  cat("\n=== LAVA Summary ===\n\n")
+  cat(sprintf("Trait: %s\n\n", object$trait_name))
+  
+  cat("Log-Ratio of Ancestral Variances (log(VB/VA)):\n")
+  cat(sprintf("  Mean:   %7.4f\n", object$log_ratio$mean))
+  cat(sprintf("  Median: %7.4f\n", object$log_ratio$median))
+  cat(sprintf("  95%% CI: [%.4f, %.4f]\n", 
+              object$log_ratio$ci_lower, object$log_ratio$ci_upper))
+  cat(sprintf("  p-value: %.4f %s\n", 
+              object$log_ratio$p_value,
+              ifelse(object$log_ratio$p_value < 0.05, "*", "")))
+
+  cat("\n")
+  invisible(object)
+}
+
 #' @export
 plot.lava <- function(x, ...) {
   # Accept either a brmsfit (full model) or a draws data.frame in x$sampling
@@ -356,7 +375,7 @@ plot.lava <- function(x, ...) {
   
   d <- stats::density(lr)
   plot(d, main = "Posterior of log-ratio",
-    xlab = "log(Var_between / Var_within)", ylab = "Posterior density")
+    xlab = "LogAV", ylab = "Posterior density")
     abline(v = med, lty = 2)
     abline(v = ci, lty = 3)
     legend("topright",

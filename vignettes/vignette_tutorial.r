@@ -2,22 +2,23 @@
 # This script creates all the data files that will be included in inst/extdata/
 # and demonstrates the workflow that users will follow in the vignette
 
-# Install/update LAVA package if needed
-# devtools::install_github("isadoo/LAVA")  # Comment out to avoid overwriting local changes
-
-library(LAVA)
+# Load dependencies first (before loading LAVA package)
 library(hierfstat)
 library(brms)
-
-
-library(JGTeach)
 library(gaston)
 library(Matrix)
 
-source("/users/ijeronim/mywork/Chapter2/Package/create_F1.r")
+# Install JGTeach if needed (only needed for Part 1 - data generation)
+if (!requireNamespace("JGTeach", quietly = TRUE)) {
+  devtools::install_github("jgx65/JGTeach")
+}
+library(JGTeach)
 
-# Source the latest lava function with print method for testing
-source("/users/ijeronim/mywork/LAVA/R/lava.r")
+# Now load LAVA package (this should not reload brms since it's already loaded)
+devtools::load_all("/home/isa/github_repositories/LAVA")
+
+source("/home/isa/github_repositories/LAVA/R/create_F1.r")
+
 
 cat("================================================================\n")
 cat("LAVA VIGNETTE DATA GENERATION AND TUTORIAL SCRIPT\n")
@@ -123,53 +124,59 @@ write.csv(trait_df_pop,
           file.path(save_path, "vignette_trait_df_pop.csv"), 
           row.names = FALSE)
 
+
+saveRDS(Theta.P, file.path(save_path, "vignette_Theta_P.rds"))
+saveRDS(M, file.path(save_path, "vignette_M.rds"))
+saveRDS(pop_id, file.path(save_path, "vignette_pop_id.rds"))
 # ============================================================
 # PART 2: VIGNETTE TUTORIAL WORKFLOW (what users will follow)
 # ============================================================
 cat("================================================================\n")
 cat("PART 2: VIGNETTE TUTORIAL WORKFLOW\n")
 cat("================================================================\n\n")
-devtools::install_github("isadoo/LAVA")
-#load lava
-library(LAVA)
 
-cat("Step 1: Getting the genetic data to dosages\n")
+# Load LAVA (assumes package is already loaded from Part 1, or use library(LAVA) if installed)
+cat("LAVA package loaded\n\n")
+
+cat("Step 1: Load genetic data (dosage format)\n")
 cat("------------------------------------------------------\n")
 
-# Read data from package example files (as users will do)
-neutral_file <- system.file("extdata", "neutral_data_g3000.dat", package = "LAVA")
-quanti_file <- system.file("extdata", "quanti_trait_g3000.dat", package = "LAVA")
+#Load parental dosages  ##########################
+dos_P_neutral <- readRDS(
+  system.file("extdata", "vignette_dos_parental_neutral.rds", package = "LAVA")
+)
 
-sim <- hierfstat::read.fstat(fname = neutral_file)
-sim_quanti <- hierfstat::read.fstat(fname = quanti_file)
-
-cat("First 5 rows, first 5 columns:\n")
-print(sim[1:5, 1:5])
-cat("\n")
-
-dos <- hierfstat::biall2dos(sim[, -1])
-dos_quanti <- hierfstat::biall2dos(sim_quanti[, -1], diploid = TRUE)
-pop <- sim$Pop
-
-cat("Dosage format - first 5 rows, first 5 loci:\n")
-print(dos[1:5, 1:5])
-cat("\n")
-
-# Load F1 dosages
+# Load F1 dosages ##########################
 dos_F1only_neutral <- readRDS(
   system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "LAVA")
 )
-cat("F1 neutral dosages loaded:", dim(dos_F1only_neutral), "\n\n")
 
-cat("Step 2: Loading trait data and population identification\n")
+###############################################
+
+#Check files:
+
+cat("Parental dosage format - first 5 individuals, first 5 loci:\n")
+print(dos_P_neutral[1:5, 1:5])
+
+cat("F1 dosage format - first 5 individuals, first 5 loci:\n")
+print(dos_F1only_neutral[1:5, 1:5])
+cat("\nF1 neutral dosages dimensions:", dim(dos_F1only_neutral), "\n\n")
+
+cat("Step 2: Load trait data and visualize trait distribution\n")
 cat("------------------------------------------------------\n")
 
 trait_df_pop <- read.csv(
   system.file("extdata", "vignette_trait_df_pop.csv", package = "LAVA")
 )
 
-population_individual_id_df <- read.csv(
+#Load population to individual identification dataframe (This is just the F1s)
+population_individual_id <- read.csv(
   system.file("extdata", "vignette_population_individual_id_df.csv", package = "LAVA")
+)
+
+#write a vector of pop ids for genotyped parents
+pop_id <- readRDS(
+  system.file("extdata", "vignette_pop_id.rds", package = "LAVA")
 )
 
 cat("Trait data (first 6 rows):\n")
@@ -177,35 +184,53 @@ print(head(trait_df_pop))
 cat("\n")
 
 cat("Population-individual mapping (first 6 rows):\n")
-print(head(population_individual_id_df))
+print(head(population_individual_id))
 cat("\n")
 
-cat("Step 3: Calculating coancestries\n")
+# Visualize trait distribution by population
+cat("Creating trait distribution plot by population...\n")
+unique_pops <- unique(trait_df_pop$population)
+n_pops <- length(unique_pops)
+colors <- rainbow(n_pops)
+
+# Save plot as PNG
+png("/home/isa/github_repositories/LAVA/vignettes/trait_distribution_by_population.png", 
+    width = 800, height = 600)
+plot(trait_df_pop$individual, trait_df_pop$trait,
+     col = colors[as.factor(trait_df_pop$population)],
+     pch = 19, cex = 0.8,
+     xlab = "Individual ID", ylab = "Trait Value (standardized)",
+     main = "Trait Distribution by Population")
+legend("topright", legend = paste("Pop", unique_pops), 
+       col = colors, pch = 19, cex = 0.8, bty = "n")
+dev.off()
+cat("Plot saved to vignettes/trait_distribution_by_population.png\n")
+cat("\n")
+
+cat("Step 3: Calculate coancestry matrices\n")
 cat("------------------------------------------------------\n")
 
 coancestries_dosage <- calculate_coancestries(
-  genetic_data_parents = dos,
-  genotyped_parent_populations = pop,
+  genetic_data_parents = dos_P_neutral,
+  genotyped_parent_populations = pop_id,
   genetic_data_F1 = dos_F1only_neutral,
-  population_individual_id = population_individual_id_df,
+  population_individual_id = population_individual_id,
   column_individual = "individual",
   column_population = "pop_id",
-  all_parents_genotyped = TRUE
+  all_parents_genotyped = TRUE,
+  verbose = TRUE
 )
 
 Theta.P <- coancestries_dosage$Theta.P
 M <- coancestries_dosage$M
 
-cat("Coancestry matrices calculated:\n")
+cat("\nCoancestry matrices calculated:\n")
 cat("  Theta.P dimensions:", dim(Theta.P), "\n")
 cat("  M dimensions:", dim(M), "\n\n")
 
-# Save matrices for future use
-saveRDS(Theta.P, file.path(save_path, "vignette_Theta_P.rds"))
-saveRDS(M, file.path(save_path, "vignette_M.rds"))
 cat("Matrices saved to inst/extdata\n\n")
 
-cat("Step 4: Running lava()\n")
+cat("Step 4: Run LAVA analysis\n")
 cat("------------------------------------------------------\n")
 
 results <- lava(
@@ -222,14 +247,26 @@ results <- lava(
 
 cat("\n")
 cat("================================================================\n")
-cat("LAVA RESULTS FOR VIGNETTE\n")
+cat("LAVA ANALYSIS RESULTS\n")
 cat("================================================================\n\n")
 
+# View concise summary
+cat("Concise summary:\n")
+summary(results)
+
+cat("\n--- Detailed output ---\n")
 print(results)
 
+cat("\n--- Posterior samples ---\n")
+cat("First 6 rows of posterior samples:\n")
+print(head(results$sampling))
 
+cat("\n--- Visualize posterior distribution ---\n")
+png("/home/isa/github_repositories/LAVA/vignettes/posteriorplot.png", width = 800, height = 600)
+plot(results)
+dev.off()
 
 # Save results
 saveRDS(results, file.path(save_path, "vignette_lava_results.rds"))
-cat("Results saved to inst/extdata/vignette_lava_results.rds\n\n")
+cat("\nResults saved to inst/extdata/vignette_lava_results.rds\n")
 

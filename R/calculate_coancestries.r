@@ -14,7 +14,7 @@
 #'
 #' @param genetic_data_F1 A data frame or file name containing genetic data for the F1 generation. Must be dosage format.
 #' 
-#' @param population_individual_id (Optional) A data frame mapping individuals to their respective populations. First parent ids, then F1 ids.
+#' @param population_individual_id (Optional) A data frame mapping individuals to their respective populations.
 #' If not provided, a balanced design is assumed.
 #'
 #' @param column_individual The name of the column containing individual IDs. Default is "id".
@@ -25,6 +25,8 @@
 #' individual ID, dam ID, and sire ID.
 #'
 #' @param all_parents_genotyped Logical; if TRUE, indicates that the genotyped individuals in "genotyped_parent_populations" are the parents of F1 individuals
+#' 
+#' @param verbose Logical; if TRUE (default), prints informational messages during calculation. If FALSE, suppresses output.
 #' 
 #' @return A list containing:
 #' \item{M}{A kinship-based relatedness matrix adjusted for F1 individuals.}
@@ -46,7 +48,8 @@ calculate_coancestries <- function(genetic_data_parents,
                                    column_individual = "id", 
                                    column_population = "population_id", 
                                    pedigree = NA,
-                                   all_parents_genotyped = FALSE) {
+                                   all_parents_genotyped = FALSE,
+                                   verbose = TRUE) {
 
     # Fix for R CMD check global variable notes
     dam <- dam_pop <- sire <- sire_pop <- id <- population_id <- n <- sire_n <- dam_n <- NULL
@@ -132,7 +135,7 @@ calculate_coancestries <- function(genetic_data_parents,
     }
     
 
-    cat("There are ", length(unique(parent_pop_id)), " populations. \n")
+    if (verbose) cat("There are ", length(unique(parent_pop_id)), " populations. \n")
 
     if (exists("pop_ids_F1")) {
         if (!identical(pop_ids_F1,F1_pop_id)) {
@@ -150,23 +153,23 @@ calculate_coancestries <- function(genetic_data_parents,
     kinship_parents <- hierfstat::beta.dosage(matching_matrix_parents, MATCHING = TRUE)
     fst_founders <- hierfstat::fs.dosage(matching_matrix_parents, pop = parent_pop_id, matching = TRUE)
 
-    cat("Calculating Theta.P \n")
+    if (verbose) cat("Calculating Theta.P \n")
     min_Fst <- min(hierfstat::mat2vec(fst_founders$FsM))
     Theta_P <- (fst_founders$FsM - min_Fst) / (1 - min_Fst)
-    cat("Theta.P calculated with dimensions", dim(Theta_P), "\n")
+    if (verbose) cat("Theta.P calculated with dimensions", dim(Theta_P), "\n")
     # --------------------------------------------------------------------------
 
 
     # M calculation -------------------------------------------------------
-    cat("Calculating M \n")
+    if (verbose) cat("Calculating M \n")
     
     # Check if population sizes are correct ----------------------
     total_individuals <- sum(population_sizes)
     total_individuals_F1 <- sum(population_sizes_F1)
     #cat("population sizes including F1 and Founders are ", population_sizes, "\n")
     #cat("total individuals are ", total_individuals, "\n")
-    cat("population sizes of F1", population_sizes_F1, "\n")
-    cat("total individuals are ", total_individuals_F1, "\n")
+    if (verbose) cat("population sizes of F1", population_sizes_F1, "\n")
+    if (verbose) cat("total individuals are ", total_individuals_F1, "\n")
 
     
 
@@ -195,7 +198,7 @@ calculate_coancestries <- function(genetic_data_parents,
         
         for (pop in 0:(length(unique_pops) - 1)) {  #Version before May 14th 2025 allowed for dosage of phenotyped individuals to include founders. 
         # Find indices for this population's F1
-            cat("pop: ", pop, "\n")
+            if (verbose) cat("pop: ", pop, "\n")
 
             #Adjusting F1 individuals' kinship matrix
             start_idx <- last_individual_counted + 1
@@ -221,7 +224,7 @@ calculate_coancestries <- function(genetic_data_parents,
     #Grab the indices for individuals from current population
         pop_indices <- which(pop_ids_F1 == pop)
         dim_current_population <- length(pop_indices)
-        cat("There are", dim_current_population, "individuals in population", pop, "for calculating the M matrix\n")
+        if (verbose) cat("There are", dim_current_population, "individuals in population", pop, "for calculating the M matrix\n")
         kin_block <- hierfstat::kinship2grm(adjusted_kinship_F1)[pop_indices, pop_indices]
         block_adjusted <- kin_block * (1 - Theta_P[pop, pop])
         M[pop_indices, pop_indices] <- block_adjusted
@@ -230,13 +233,13 @@ calculate_coancestries <- function(genetic_data_parents,
     #The M must be positive definite
     eigenvalues <- eigen(M)$values
     if (any(eigenvalues < 0)) {
-        cat("M matrix not positive definite. \n")
-        cat("Minimum eigenvalue is ", min(eigenvalues), "\n")
+        if (verbose) cat("M matrix not positive definite. \n")
+        if (verbose) cat("Minimum eigenvalue is ", min(eigenvalues), "\n")
         M <- as.matrix(Matrix::nearPD(M, corr = TRUE)$mat)
-        cat("WARNING::M matrix corrected to be positive definite. \n")
+        if (verbose) cat("WARNING::M matrix corrected to be positive definite. \n")
     }
 
-    cat("M calculated with dimensions ", dim(M), "\n")
+    if (verbose) cat("M calculated with dimensions ", dim(M), "\n")
 
     return(list(M = M, Theta.P = Theta_P))
 }
