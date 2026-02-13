@@ -105,12 +105,11 @@ trait <- centered_Y / sqrt(var_Y)
 NTraits <- 1
 individual <- rep(1:(length(trait) / NTraits), NTraits)
 population_individual_id_df <- data.frame(pop_id = pop_F1, individual = individual)
-trait_id <- rep(1:NTraits, each = (length(trait) / NTraits))
 population <- rep(pop_F1, NTraits)
-trait_df_pop <- data.frame(individual, trait, trait_id, population)
+trait_df_pop <- data.frame(individual, trait, population)
 
 # Save all data files to inst/extdata
-save_path <- file.path("/users/ijeronim/mywork/LAVA/inst/extdata")
+save_path <- file.path("/home/isa/github_repositories/LAVA/inst/extdata")
 
 
 write.csv(population_individual_id_df, 
@@ -128,6 +127,20 @@ write.csv(trait_df_pop,
 saveRDS(Theta.P, file.path(save_path, "vignette_Theta_P.rds"))
 saveRDS(M, file.path(save_path, "vignette_M.rds"))
 saveRDS(pop_id, file.path(save_path, "vignette_pop_id.rds"))
+
+#Environmental data
+optima <- c(-2.3000000, -1.9196562, -1.2778076, -0.4392609, 0.4763456, 
+            1.3636544, 2.1592261, 2.6803438, 2.9196562, 2.6803438, 
+            2.1592261, 1.3636544, 0.4763456, -0.4392609, -1.2778076, 
+            -1.9196562, -2.3000000, -2.2203438)
+
+environment <- rep(optima, each = 50)
+trait_df_pop_env <- cbind(trait_df_pop, environment = environment)
+print(head(trait_df_pop_env))
+write.csv(trait_df_pop_env, 
+          file.path(save_path, "vignette_environment_df.csv"), 
+          row.names = FALSE)
+
 # ============================================================
 # PART 2: VIGNETTE TUTORIAL WORKFLOW (what users will follow)
 # ============================================================
@@ -224,6 +237,15 @@ coancestries_dosage <- calculate_coancestries(
 Theta.P <- coancestries_dosage$Theta.P
 M <- coancestries_dosage$M
 
+#Or directly load pre-calculated matrices
+
+Theta.P <- readRDS(
+   system.file("extdata", "vignette_Theta_P.rds", package = "LAVA")
+ )
+M <- readRDS(
+   system.file("extdata", "vignette_M.rds", package = "LAVA")
+ ) 
+
 cat("\nCoancestry matrices calculated:\n")
 cat("  Theta.P dimensions:", dim(Theta.P), "\n")
 cat("  M dimensions:", dim(M), "\n\n")
@@ -266,7 +288,77 @@ png("/home/isa/github_repositories/LAVA/vignettes/posteriorplot.png", width = 80
 plot(results)
 dev.off()
 
-# Save results
+
 saveRDS(results, file.path(save_path, "vignette_lava_results.rds"))
 cat("\nResults saved to inst/extdata/vignette_lava_results.rds\n")
 
+cat("Step 5: Load environmental data and run LAVA with environment\n")
+cat("------------------------------------------------------\n")
+
+
+trait_df_pop_env <- read.csv(
+  system.file("extdata", "vignette_environment_df.csv", package = "LAVA")
+)
+
+cat("Trait data with environment (first 6 rows):\n")
+print(head(trait_df_pop_env))
+cat("\n")
+
+cat("Environmental optima by population:\n")
+env_by_pop <- aggregate(environment ~ population, data = trait_df_pop_env, FUN = mean)
+print(env_by_pop)
+cat("\n")
+
+# Visualize trait vs environment
+cat("Creating trait vs environment plot...\n")
+png("/home/isa/github_repositories/LAVA/vignettes/trait_vs_environment.png", 
+    width = 800, height = 600)
+plot(trait_df_pop_env$environment, trait_df_pop_env$trait,
+     col = colors[as.factor(trait_df_pop_env$population)],
+     pch = 19, cex = 0.8,
+     xlab = "Environmental Optimum", ylab = "Trait Value (standardized)",
+     main = "Trait Value vs Environmental Optimum by Population")
+legend("bottomright", legend = paste("Pop", unique_pops), 
+       col = colors, pch = 19, cex = 0.8, bty = "n", ncol = 2)
+dev.off()
+cat("Plot saved to vignettes/trait_vs_environment.png\n\n")
+
+# Run LAVA with environment
+cat("Running LAVA analysis with environmental covariate\n")
+
+results_env <- lava(
+  Theta.P = Theta.P,
+  M = M,
+  trait_dataframe = trait_df_pop_env,
+  column_individual = "individual",
+  column_trait = "trait",
+  formula_covariates = "environment",
+  save_full_model = FALSE,
+  iter = 4000,           
+  warmup = 2000,         
+  control = list(adapt_delta = 0.95, max_treedepth = 12)  
+)
+
+cat("\n")
+cat("================================================================\n")
+cat("LAVA ANALYSIS RESULTS WITH ENVIRONMENT\n")
+cat("================================================================\n\n")
+
+cat("Concise summary:\n")
+summary(results_env)
+
+cat("\n--- Detailed output ---\n")
+print(results_env)
+
+cat("\n--- Posterior samples ---\n")
+cat("First 6 rows of posterior samples:\n")
+print(head(results_env$sampling))
+
+cat("\n--- Visualize posterior distribution ---\n")
+png("/home/isa/github_repositories/LAVA/vignettes/posteriorplot_with_environment.png", 
+    width = 800, height = 600)
+plot(results_env)
+dev.off()
+
+saveRDS(results_env, file.path(save_path, "vignette_lava_results_env.rds"))
+cat("\nResults saved to inst/extdata/vignette_lava_results_env.rds\n")

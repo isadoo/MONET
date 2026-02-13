@@ -35,632 +35,1037 @@
 \maketitle
 
 \begin{abstract}
-The LAVA package implements the LogAV method for testing local adaptation in structured populations by comparing log ratios of ancestral variances. The method addresses limitations of traditional $Q_{ST}$-$F_{ST}$ comparisons by accounting for complex population structures through coancestry matrices. The LAVA package implements the LogAV algorithm. This vignette provides a comprehensive guide to using LAVA, including theoretical background, practical examples, and interpretation of results. 
+Distinguishing adaptive divergence from neutral processes in structured populations is a fundamental challenge in evolutionary biology. Traditional methods like $Q_{ST}$-$F_{ST}$ comparisons assume equal relatedness among all subpopulations—an assumption that is often violated in natural metapopulations. When this assumption is broken, these methods can produce inflated false positive rates.
+
+The LAVA package implements the LogAV method, which addresses this limitation by explicitly modeling population structure through coancestry matrices. The method compares two estimates of ancestral additive genetic variance derived from different levels of the demographic history. Under neutrality, these estimates should be equal; deviations indicate selection. LAVA maintains proper statistical calibration across diverse population structures while achieving comparable or superior power to existing methods.
+
+This vignette provides a practical guide to using LAVA, from installation through analysis and interpretation. We demonstrate the workflow with a complete tutorial using simulated data, explain how to prepare your own data, and provide guidance on advanced usage and troubleshooting.
 \end{abstract}
 
 \tableofcontents
 \newpage
 
-\section{Introduction}
-
-Species are distributed across heterogeneous environments, leading to population divergence through genetic drift, natural selection, and limited gene flow. Distinguishing adaptive divergence from neutral processes is a fundamental challenge in evolutionary biology. Traditional methods like $Q_{ST}$-$F_{ST}$ comparison assume equal relatedness among subpopulations—a simplification that can cause increase in false positive rates [cite de Villemereuil 2020, and do O 2025].
-
-The LAVA package implements the LogAV method [cite do O 2025], which uses estimates of between- and within-population relatedness to model population structure. Under neutrality, the ancestral additive genetic variances estimated from between-population and within-population effects are expected to be equal.
-
-\section{Theoretical Background}
-
-\subsection{The LogAV Method}
-
-LogAV tests the null hypothesis of neutral divergence by comparing two estimates of the ancestral additive genetic variance ($V_A$):
-
-\begin{itemize}
-\item $\hat{V}_{A,B}$: estimated from between-population effects
-\item $\hat{V}_{A,W}$: estimated from within-population effects
-\end{itemize}
-
-Under neutrality: $V_{A,B} = V_{A,W}$
-
-The test statistic is:
-$$\text{LogAV} = \log\left(\frac{\hat{V}_{A,B}}{\hat{V}_{A,W}}\right)$$
-
-\subsection{Population structure description}
-
-\subsection{Coancestry Estimation}
-We use and recommend the use of the allele-sharing method of moments [cite Weir and Goudet 2017 and Goudet and Weir 2023] to estimate coancestries for using the LAVA package. 
-
-LogAV uses two key matrices:
-
-\subsubsection{Population Coancestry Matrix ($\mathbf{\Theta_p}$)}
-$\mathbf{\Theta_p}$ contains mean coancestries for pairs of individuals one in each of two different subpopulations relative to the ancestral population. Element $\Theta_p^{i,j}$ describes the probability of identity-by-descent (IBD) between random alleles from subpopulations $i$ and $j$.
-
-$$\hat{\Theta}_p = \frac{\bar{A}^{\mathcal{P}}_s - \min(\bar{A}^{\mathcal{P}}_s)}{1 - \min(\bar{A}^{\mathcal{P}}_s)}$$
-
-\subsubsection{Individual Coancestry Matrix ($M$)}
-$M$ describes relatedness between pairs of individuals within subpopulations, accounting for the shared ancestry already captured in $\Theta_p$.
-
-\subsubsection{Relatedness Adjustment}
-
-Within-population relatedness is adjusted to considering between-population coancestry twice as:
-
-$$\hat{M}_x = \text{relatedness}_x \times (1 - \hat{\Theta}^p_x)$$
-
-where $\hat{\Theta}^p_x$ is the diagonal element of $\hat{\Theta}_p$ for population $x$.
-
-
-\subsection{Mixed Effects Model}
-
-The phenotypic model is:
-$$z \sim \mu + a_p + a_i + \epsilon$$
-
-where:
-\begin{align}
-a_p &\sim N(0, 2\Theta_p V_{A,B}) \\
-a_i &\sim N(0, M V_{A,W})
-\end{align}
-
 \section{Installation and Setup}
+
+\subsection{Installation from GitHub}
+
+LAVA is available on GitHub. Install it using the \texttt{devtools} package:
 
 \lstset{style=Rstyle}
 \begin{lstlisting}
-# Install from GitHub
+# Install devtools if you don't have it
+if (!require("devtools")) install.packages("devtools")
+
+# Install LAVA from GitHub
 devtools::install_github("isadoo/LAVA")
-
-# It automatically installs required dependencies:
-# - kinship2 (for kinship calculations)
-# - hierfstat (for coancestry estimation)
-# - brms (for Bayesian mixed models)
-# - JGTeach (for population genetics utilities)
-# - gaston (for genetic data manipulation)
-# - Matrix (for efficient matrix operations)
-
-library(LAVA)
-
 \end{lstlisting}
 
-\section{Data Requirements}
+\subsection{Loading the Package}
 
-LAVA requires:
+Once installed, load LAVA into your R session:
 
-\begin{enumerate}
-\item \textbf{Phenotypic data}: Offspring (F1) traits measured in common garden
-\item \textbf{Genetic markers}: Genetic markers from founder population (non-common gardens)
-\item \textbf{Relatedness for F1}: Pedigree information or genetic markers from F1 individuals(common gardens individuals)
-\item \textbf{Population identification}: Founder and F1 individuals should be linked to a population.
-\end{enumerate}
+\begin{lstlisting}
+library(LAVA)
+\end{lstlisting}
 
-\subsection{Data Format}
+\subsection{Dependencies}
+
+LAVA automatically installs and uses several key dependencies:
+
 \begin{itemize}
-    \item Genetic data should be in dosage format (0 for reference homozygote, 1 for heterozygote, 2 for derived homozygote), with individuals as rows and loci as columns. with $n$ individuals and $L$ loci, the dosage matrix is $n \times L$.
-    \item Population identification for F1 should be a data frame including population names and individual names (dimension $n \times 2$).
-    \item Population identification for founder population should be a vector of population names (vector of length $r$ with $r$ populations).
-    \item Trait data should be a data frame with at least two columns, one with individual identification and another with trait values (dimension $n \times 2$). 
+\item \textbf{brms}: For Bayesian linear mixed-effects modeling. LAVA uses \texttt{brms} to fit the statistical model and estimate ancestral variances through Bayesian inference.
+
+\item \textbf{hierfstat}: For calculating coancestry matrices and population genetic statistics using the allele-sharing method of moments.
+
+\item \textbf{kinship2}: For kinship calculations from pedigree data.
+
+\item \textbf{dplyr} and \textbf{tidyr}: For data manipulation.
+
+\item \textbf{Matrix}: For efficient matrix operations, particularly when working with large coancestry matrices.
+
+\item \textbf{posterior}: For posterior distribution analysis from the Bayesian model.
 \end{itemize}
 
-\section{Workflow Overview}
+Note that \texttt{brms} requires a working Stan installation. If you encounter issues with \texttt{brms}, consult the brms documentation at \url{https://paul-buerkner.github.io/brms/}.
 
-LAVA follows a straightforward workflow:
+\section{Quick Overview}
+
+\subsection{The LAVA Workflow}
+
+LAVA follows a three-step workflow:
 
 \begin{enumerate}
-\item \textbf{Prepare Data}: Organize genetic markers, phenotypes, and population information
-\item \textbf{Calculate Coancestries}: Compute $\Theta_P$ (population-level) and $M$ (individual-level) matrices
-\item \textbf{Run Analysis}: Fit the mixed model and estimate ancestral variances
-\item \textbf{Interpret Results}: Evaluate evidence for local adaptation
+\item \textbf{Calculate coancestries}: Use the \texttt{calculate\_coancestries()} function to compute population-level ($\mathbf{\Theta_P}$) and individual-level ($\mathbf{M}$) coancestry matrices from genetic data.
+
+\item \textbf{Run the analysis}: Use the \texttt{lava()} function to fit a Bayesian mixed-effects model to your trait data, accounting for population structure.
+
+\item \textbf{Interpret results}: Examine the log-ratio of ancestral variances and its associated p-value to assess evidence for local or global adaptation.
 \end{enumerate}
 
-Here we show a general overview of what the steps are. In section (\S\ref{sec:parameters}) we offer a detailed description of the parameters.
-On section (\S\ref{sec:tutorial}) we provide a complete tutorial with example data.
+\subsection{The Core Statistical Test}
 
+LAVA tests for local adaptation by comparing two estimates of the ancestral additive genetic variance ($V_\mathcal{A}$):
 
-\bigskip
-\textit{This is not a tutorial, just the description of step-by-step}
-\subsection{Step 1: Prepare Your Data}
-To run LAVA it is necessary to have coancestries of your populations and measurements of the trait of interest.
-We provide a function \texttt{FUNCTION.NAME} to calculate coancestries from genetic data in dosage format. 
-To use \texttt{FUNCTION.NAME} you will need genetic data from the populations of origin for example:
+\begin{itemize}
+\item $\hat{V}_{A,B}$: estimated from between-population divergence
+\item $\hat{V}_{A,W}$: estimated from within-population variation
+\end{itemize}
+
+Under neutrality, these two estimates should be equal on average: $E[V_{ \mathcal{A},B}] = E[V_{ \mathcal{A},W}]$, as both reflect the same ancestral variance partitioned through different aspects of the demographic history.
+
+The test statistic is the log-ratio:
+$$\text{LogAV} = \log\left(\frac{\hat{V}_{A,B}}{\hat{V}_{A,W}}\right)$$
+
+Under neutrality, $E[\text{LogAV}] = 0$. 
+
+\begin{itemize}
+\item If LogAV is significantly $> 0$ (i.e., $V_{ \mathcal{A},B} > V_{ \mathcal{A},W}$): This indicates \textbf{local adaptation}. Phenotypic divergence among populations exceeds neutral expectations.
+
+\item If LogAV is significantly $< 0$ (i.e., $V_{ \mathcal{A},B} < V_{ \mathcal{A},W}$): This indicates \textbf{global (or spatially-uniform) adaptation}. Selection has reduced divergence among populations relative to what would be expected under drift alone.
+\end{itemize}
+
+\subsection{Statistical Inference}
+
+LAVA uses Bayesian inference to compute the log-ratio. From the posterior distributions of $V_{ \mathcal{A},B}$ and $V_{ \mathcal{A},W}$, we calculate the log-ratio for each posterior sample. The Bayesian p-value is computed as:
+
+$$p = 2 \times \min \left( \frac{\#(\text{LogAV} > \text{median})}{N}, \frac{\#(\text{LogAV} < \text{median})}{N} \right)$$
+
+where $N$ is the number of posterior samples, this p-value quantifies the proportion of the posterior in which the log-ratio has the opposite sign to the median, effectively testing whether the log-ratio differs significantly from zero.
+
+A small p-value (typically $p < 0.05$) provides evidence against neutrality and supports the presence of selection.
+
+\subsection{Testing Environmental Correlations}
+LAVA can also test whether trait values are linearly associated with environmental differences across populations. For that, environmental covariates should be included in the model (via the  \lstinline{formula_covariates} parameter). This test uses the coefficient $\beta$ from the fixed effects in the model.
+
+For each environmental variable j, LAVA computes a Bayesian p-value:
+\begin{equation}
+    p_j = 2 \times \min\left(\frac{\#(\beta_j > 0)}{N}, \frac{\#(\beta_j < 0)}{N}\right)
+\label{eq:pval_beta}
+\end{equation}
+
+This tests whether the environmental coefficient differs significantly from zero. A significant coefficient indicates that trait values systematically vary with that environmental variable across populations, even after accounting for neutral population structure through the random effects.
+
+Both tests (LogAV and the environmental coefficient) can be significant simultaneously, providing both evidence for selection (LogAV) and insight into the ecological driver (environmental coefficient).
+
+\section{Data Preparation}
+
+\subsection{Data Requirements}
+
+To use LAVA, you need:
+
+\begin{enumerate}
+\item \textbf{Phenotypic data from a common garden}: Quantitative trait measurements from offspring (F1 generation) reared in a controlled environment to minimize phenotypic plasticity.
+
+\item \textbf{Genetic markers from the parental (founder) generation}: Neutral markers (SNPs, microsatellites, etc.) from individuals sampled from wild populations. This is used to estimate the population-level coancestry matrix $\Theta_P$.
+
+\item \textbf{Relatedness information for F1 individuals}: Either:
+   \begin{itemize}
+   \item Genetic data from F1 individuals (for estimating kinship), or
+   \item Pedigree information (dam and sire IDs for each F1 individual)
+   \end{itemize}
+
+\item \textbf{Population identification}: A mapping that links both parental and F1 individuals to their respective source populations.
+
+\item \textbf{(Optional) Environmental data}: Environmental covariates measured at each source population can be included to test hypotheses about specific ecological drivers of divergence and to increase statistical power.
+\end{enumerate}
+
+\subsection{Data Format Requirements}
+
+\subsubsection{Genetic Data (Dosage Format)}
+
+Genetic marker data must be in \textbf{dosage format}, where each genotype is encoded as:
+\begin{itemize}
+\item \textbf{0}: homozygous for the reference allele
+\item \textbf{1}: heterozygous
+\item \textbf{2}: homozygous for the alternative allele
+\end{itemize}
+
+The data should be organized as a matrix or data frame with:
+\begin{itemize}
+\item \textbf{Rows}: individuals
+\item \textbf{Columns}: loci (genetic markers)
+\end{itemize}
+
+For example, if you have $n$ individuals genotyped at $L$ loci, your dosage matrix should have dimensions $n \times L$.
+
+\textbf{Example structure}:
 \begin{lstlisting}
-head(genetic_data_parents)
-#   ind_id  pop_id  locus1  locus2  locus3  ...
-#   P001    pop1    1       0       2       
-#   P002    pop1    0       1       1       
-#   P003    pop2    2       2       0       
+head(genetic_data_parents[, 1:6])
+#   locus1  locus2  locus3  locus4  locus5
+#   1       0       2       1       0
+#   0       1       1       2       1
+#   2       2       0       0       2
 \end{lstlisting}
 
-You will also need a data frame mapping individuals to populations, with columns specifying individual IDs and population IDs:
+Row names should be individual IDs, and column names should be locus IDs.
+
+\subsubsection{Population Identification}
+
+Population information for the parental generation should be provided as a \textbf{vector} of population IDs, with one entry per individual, in the same order as the rows in the genetic data:
+
 \begin{lstlisting}
-head(population_ind)
+# Example for 6 individuals from 3 populations
+parent_populations <- c("pop1", "pop1", "pop2", "pop2", "pop3", "pop3")
+\end{lstlisting}
+
+For the F1 generation, provide a \textbf{data frame} with at least two columns:
+\begin{itemize}
+\item One column for individual IDs
+\item One column for population IDs
+\end{itemize}
+
+\begin{lstlisting}
+head(population_individual_id)
 #   id      population_id
 #   F001    pop1
 #   F002    pop1  
 #   F003    pop1
 #   F004    pop2
-#   F005    pop2
 \end{lstlisting}
 
-The last required data entry is the trait data, which should identify individuals and their trait values.
+\subsubsection{Phenotypic Data}
+
+Trait data should be a data frame with at least two columns:
+\begin{itemize}
+\item One column for individual IDs (matching the F1 individuals)
+\item One column for trait values
+\end{itemize}
+
 \begin{lstlisting}
 head(trait_data)
 #   id      trait_value
 #   F001    15.2
 #   F002    14.8
 #   F003    16.1
+#   F004    13.9
 \end{lstlisting}
 
-To calculate the $\mathbf{M}$ matrix, it is necessary to have either a pedigree data frame or dosages from the F1 (phenotyped) individuals.
-
-\subsection{Step 2: Calculate Coancestries}
-Once you have organized your data, you can calculate the coancestry matrices using the \texttt{calculate\_coancestries()} function:
-\begin{lstlisting}
-# get population IDs for parents
-parent_populations <- genetic_data_parents$pop_id
-
-# Calculate coancestry matrices
-coancestries <- calculate_coancestries(
-  genetic_data_parents = genetic_data_parents[, -c(1:2)], # Remove ID columns
-  genotyped_parent_populations = parent_populations,
-  genetic_data_F1 = genetic_data_F1[, -c(1:2)], # If available
-  population_individual_id = population_ind,
-  column_individual = "id",
-  column_population = "population_id"
-)
-
-# Extract matrices
-Theta.P <- coancestries$Theta.P
-M <- coancestries$M
-
-# Confirming matrices dimensions
-dim(Theta.P)  # Should be n_populations x n_populations
-dim(M)    # Should be n_individuals x n_individuals
-\end{lstlisting}
-
-\subsection{Step 3: Run LogAV Analysis}
-Now you have all the basic requirements to run LAVA.
-\begin{lstlisting}
-# Run LAVA analysis
-result <- lava(
-  Theta.P = Theta.P,
-  M = M,
-  trait_dataframe = trait_data,
-  column_individual = "id",
-  column_trait = "trait_value"
-)
-
-# View results
-print(result)
-\end{lstlisting}
-
-\subsection{Step 4: Interpret Results}
-
-\begin{lstlisting}
-# Plot posterior distributions
-plot(result, which = "both")
-
-# Extractstatistics
-cat("Mean log ratio:", result$log_ratio$mean_log_ratio, "\n")
-cat("P-value:", result$log_ratio$p_value, "\n")
-cat("95% CI:", result$log_ratio$log_ratio_ci_lower, 
-    "to", result$log_ratio$log_ratio_ci_upper, "\n")
-\end{lstlisting}
-
-\section{Function Reference}
-\label{sec:parameters}
-
-\subsection{calculate\_coancestries()}
-
-Computes the coancestry matrices required for LAVA.
-
-\begin{lstlisting}
-calculate_coancestries(genetic_data_parents,
-                       genotyped_parent_populations, 
-                       genetic_data_F1 = NA, 
-                       population_individual_id = NA, 
-                       column_individual = "id", 
-                       column_population = "population_id", 
-                       pedigree = NA,
-                       all_parents_genotyped = FALSE)
-\end{lstlisting}
-
-\textbf{Parameters:}
-
+You can include additional columns for:
 \begin{itemize}
-    \item \texttt{genetic\_data\_parents}: Matrix or data frame of genetic data (dosage format: 0, 1, 2) for the parental/founder generation. Individuals in rows, loci in columns.
-    
-    \item \texttt{genotyped\_parent\_populations}: Vector of population IDs corresponding to rows in \texttt{genetic\_data\_parents}.
-    
-    \item \texttt{genetic\_data\_F1}: (Optional) Genetic data for F1 generation in dosage format. Default \texttt{NA}.
-    
-    \item \texttt{population\_individual\_id}: (Optional) Data frame mapping individuals to populations, with columns specified by \texttt{column\_individual} and \texttt{column\_population}. Default \texttt{NA}.
-    
-    \item \texttt{column\_individual}: Column name for individual IDs in \texttt{population\_individual\_id}. Default \texttt{"id"}.
-    
-    \item \texttt{column\_population}: Column name for population IDs in \texttt{population\_individual\_id}. Default \texttt{"population\_id"}.
-    
-    \item \texttt{pedigree}: (Optional) Data frame with columns for individual ID, dam ID, and sire ID. Default \texttt{NA}.
-    
-    \item \texttt{all\_parents\_genotyped}: Logical; \\
-    if \texttt{TRUE}, indicates that the genotyped individuals in \texttt{genotyped\_parent\_populations} are the parents of F1 individuals.\\
-    Default is \texttt{FALSE}.
+\item Population IDs (if not provided separately)
+\item Environmental covariates
+\item Other fixed effects (e.g., sex, age, block effects)
+\item Standard errors for trait measurements (if available)
 \end{itemize}
 
-\textbf{Returns:} List with components \texttt{Theta.P} (population coancestry matrix) and \texttt{M} (individual relatedness matrix).
+\subsubsection{Pedigree Data (if using instead of F1 genetic data)}
 
-\subsection{lava()}
-
-Performs the LogAV analysis to test for local adaptation.
-
-\begin{lstlisting}
-lava(Theta.P, 
-     M, 
-     trait_dataframe, 
-     column_individual = "id", 
-     column_trait = "trait", 
-     formula = "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))", 
-     ...)
-\end{lstlisting}
-
-\textbf{Parameters:}
-
+If you are using pedigree information instead of F1 genetic data, provide a data frame with at least these columns:
 \begin{itemize}
-    \item \texttt{Theta.P}: Square matrix of population coancestries (from \texttt{calculate\_coancestries()}).
-    
-    \item \texttt{M}: Square matrix of individual relatedness (from \texttt{calculate\_coancestries()}).
-    
-    \item \texttt{trait\_dataframe}: Data frame with individual IDs and trait values.
-    
-    \item \texttt{column\_individual}: Column name for individual IDs. Default \texttt{"id"}.
-    
-    \item \texttt{column\_trait}: Column name for trait values. Default \texttt{"trait"}.
-    
-    \item \texttt{formula}: Model formula for \texttt{brms}. Default fits the standard LAVA model.
-    
-    \item \texttt{...}: Additional arguments passed to \texttt{brms::brm()} (e.g., \texttt{iter}, \texttt{chains}, \texttt{prior}).
+\item Individual ID
+\item Dam (mother) ID
+\item Sire (father) ID
+\item Dam population ID
+\item Sire population ID
 \end{itemize}
 
-\textbf{Returns:} LAVA results object with log ratio estimates, credible intervals, and p-values. The fitted \texttt{brms} model is stored as an attribute.
+\subsection{Converting VCF to Dosage Format}
 
-\section{Tutorial: 18 Population Stepping Stones}
-\label{sec:tutorial}
-Here we show a step by step example of how to run lava on a simple simulated data set.
+If your genetic data is in VCF (Variant Call Format), you need to convert it to dosage format. One way is through \textbf{hierfstat} read.VCF function:
 
-\subsection{Quick description of our example}
+\begin{lstlisting}
+bed <- hierfstat::read.VCF
+dos <- gaston::as.matrix(bed)
+\end{lstlisting}
 
-The example dataset comes from a simulated metapopulation:
+Some of the many other approaches include: (1) vcftools \cite{danecek2011variant} and R. (2) the package vcfR in R \cite{knaus2017vcfr}. (3) PLINK \cite{weeks2010plink} and R. 
+
+
+\subsection{Reconstructing Parental Genotypes}
+
+If you have genetic data only from the F1 generation and lack parental genetic data, you may be able to reconstruct parental genotypes using specialized software. This is particularly useful when you have pedigree information but did not genotype the parental generation. Some of these software include COLONY \cite{jones2010colony}, and Sequoia \cite{huisman2017pedigree}.
+
+\textbf{Important considerations:}
+Here are some considerations when using parental reconstructions, but we recommend reading the author's recommendations for each software.
 
 \begin{itemize}
-\item \textbf{Founder populations}: 18 subpopulations in 1-dimensional stepping-stone structure
-\item \textbf{Evolutionary history}: 3000 generations in an environmental gradient we refer to as "sine"-like creating selection gradient, as shown in Figure \ref{fig:SSsine}
-\item \textbf{Breeding design}: Controlled common garden with a North Carolina II design (add reference)
+\item Parental genotype reconstruction is most reliable when you have:
   \begin{itemize}
-  \item Within-population crosses to preserve population structure
-  \item Each population split into sires and dams
-  \item Multiple offspring per mating pair
+  \item High marker density (many SNPs)
+  \item Multiple offspring per parent
+  \item Known pedigree structure
   \end{itemize}
-\item \textbf{Trait architecture}: Additive genetic model
-  \begin{itemize}
-  \item 100 quantitative trait loci (QTLs)
-  \item Effect size: 0.1 per allele
-  \item heritability: $h^2 = 0.8$
-  \item Trait centered and standardized
-  \end{itemize}
+\item Reconstruction quality varies by individual—some parents may be confidently reconstructed while others remain uncertain
+\item When using reconstructed genotypes, be aware that reconstruction errors can affect coancestry estimates. 
 \end{itemize}
 
-\begin{figure}[h!]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Environmental information}
+Including environmental covariates in your analysis can substantially increase statistical power to detect selection while simultaneously providing insight into the ecological drivers of divergence. 
+
+Traditional approaches to studying local adaptation follow a two-step process: First testing for patterns of non-neutral divergence (for example through $Q_{ST}$ -- $F_{ST}$), and then through a separate analysis, regress population trait means against environmental variables. However, this this approach does not leverage environmental information in the test for divergence, and the regression does not account fo the non-independence between subpopulations. 
+
+LAVA uses a mixed-effect framework which allows to address both steps simultaneously. It does so by incorporating environmental covariates directly into the model which is accounting for the population structure. In our benchmarking we observed substantial power gains when including environmental information (See paper \textcolor{red}{[how do we refer to it?]}). Importantly, these power gains do not inflate false positive rates. 
+
+When environmental covariates are included, LAVA provides two complementary pieces of information: LogAV test which describes potential evidence for selection and the environmental coefficients which describes the direction and strength of the association between trait and environmental variation.
+
+\section{Tutorial with Example Data}
+
+\subsection{Overview of the Example Dataset}
+
+This tutorial uses a simulated dataset designed to demonstrate LAVA's workflow.
+\begin{itemize}
+\item \textbf{Population structure}: 18 populations arranged in a stepping-stone configuration, where gene flow only occurs between adjacent populations
+\item \textbf{Sample sizes}: 
+  \begin{itemize}
+  \item Parental generation: 10 individuals per population (180 total)
+  \item F1 generation: 50 individuals per population (900 total)
+  \end{itemize}
+\item \textbf{Selection scenario}: Local adaptation following a parabola-shaped environmental distribution of the population. In Figure \ref{fig:trait}, you can see the trait distribution, in which the traits well represent the optima the subpopulations were exposed to as shown in Figure \ref{fig:env}.
+\item \textbf{Genetic markers}: 2,000 neutral SNPs used for coancestry estimation
+\item \textbf{Crossing design}: Within-population crosses producing F1 offspring
+\end{itemize}
+
+\begin{figure}
     \centering
-    \includegraphics[width=0.8\linewidth]{figures/methods_SS_sine.png}
-    \caption{Sine-like environmental gradient across the 18 stepping-stone populations. The figure shows the environmental selection gradient that drove local adaptation in the simulated metapopulation over 3000 generations.}
-    \label{fig:SSsine}
+    \includegraphics[width=0.9\linewidth]{trait_by_population.png}
+    \caption{Trait value by individual with population identification in different colours.}
+    \label{fig:trait}
 \end{figure}
 
-\subsection{Step 1: Load genetic data (neutral markers in dosage format)}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{trait_vs_environment.png}
+    \caption{Comparison between individual trait values and optima with subpopulations differentiated by colour.}
+    \label{fig:env}
+\end{figure}
 
-The LAVA package includes example data from a simulated stepping-stone metapopulation. We start by loading the parental (founder) population genetic data and converting it to dosage format:
+\subsection{Loading Tutorial Data}
 
-\begin{lstlisting}
-# Load required packages
-library(LAVA)
-library(hierfstat)
-
-# Read parental population genetic data
-neutral_file <- system.file("extdata", "neutral_data_g3000.dat", 
-                            package = "LAVA")
-
-sim <- hierfstat::read.fstat(fname = neutral_file)
-dos <- hierfstat::biall2dos(sim[, -1])  # Convert to dosage format
-pop <- sim$Pop  # Extract population IDs
-
-# View parental dosage data
-dos[1:5, 1:5]
-#      n1_l1 n1_l2 n1_l3 n1_l4 n1_l5
-# [1,]     2     0     1     0     2
-# [2,]     2     0     0     0     1
-# [3,]     2     0     2     0     2
-# [4,]     2     0     0     0     0
-# [5,]     2     0     0     0     0
-
-# Check population structure
-unique(pop)  # Should show populations 1 through 18
-table(pop)   # Individuals per population
-\end{lstlisting}
-
-Now load the F1 (common garden) generation neutral markers:
+The tutorial data is included with the LAVA package and can be loaded directly from the package installation. We will load genetic data for both the parental and F1 generations, trait measurements, and population identifiers.
 
 \begin{lstlisting}
-# Load F1 generation dosage data
+# Step 1: Load genetic data (dosage format)
+# Load parental dosages
+dos_P_neutral <- readRDS(
+  system.file("extdata", "vignette_dos_parental_neutral.rds", 
+              package = "LAVA")
+)
+
+# Load F1 dosages
 dos_F1only_neutral <- readRDS(
   system.file("extdata", "vignette_dos_F1only_neutral.rds", 
               package = "LAVA")
 )
 
-# View F1 dosage data
-dos_F1only_neutral[1:5, 1:5]
-#      [,1] [,2] [,3] [,4] [,5]
-# [1,]    2    0    0    0    1
-# [2,]    2    0    1    0    1
-# [3,]    2    0    1    0    2
-# [4,]    2    0    1    0    1
-# [5,]    2    0    1    0    1
-
-dim(dos_F1only_neutral)  # Check dimensions
+# Check the format
+cat("Parental dosage format - first 5 individuals, first 5 loci:\n")
+print(dos_P_neutral[1:5, 1:5])
 \end{lstlisting}
 
-\subsection{Step 2: Load trait data and visualize distribution}
-
-Load the trait measurements and population identifications for F1 individuals:
+\textbf{Output:}
+\begin{verbatim}
+Parental dosage format - first 5 individuals, first 5 loci:
+     n1_l1 n1_l2 n1_l3 n1_l4 n1_l5
+[1,]     2     0     1     1     1
+[2,]     2     0     1     1     1
+[3,]     2     0     1     1     1
+[4,]     2     0     2     1     1
+[5,]     2     0     2     1     1
+\end{verbatim}
 
 \begin{lstlisting}
-# Load trait data
+# F1 dosage data
+cat("F1 dosage format - first 5 individuals, first 5 loci:\n")
+print(dos_F1only_neutral[1:5, 1:5])
+cat("\nF1 neutral dosages dimensions:", dim(dos_F1only_neutral), "\n")
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+F1 dosage format - first 5 individuals, first 5 loci:
+     [,1] [,2] [,3] [,4] [,5]
+[1,]    2    0    2    1    0
+[2,]    2    0    2    1    0
+[3,]    2    0    2    0    0
+[4,]    2    0    1    2    1
+[5,]    2    0    2    1    0
+
+F1 neutral dosages dimensions: 900 2000
+\end{verbatim}
+
+The genetic data is in the correct dosage format (0, 1, 2) with individuals as rows and loci as columns. Next, we load the phenotypic trait data and population identifiers:
+
+\begin{lstlisting}
+# Step 2: Load trait data
 trait_df_pop <- read.csv(
   system.file("extdata", "vignette_trait_df_pop.csv", 
               package = "LAVA")
 )
 
-head(trait_df_pop)
-#   individual      trait trait_id population
-# 1          1 -1.7629615        1          1
-# 2          2 -1.6589637        1          1
-# 3          3 -1.2060932        1          1
-# 4          4 -0.1079098        1          1
-# 5          5 -1.5611013        1          1
-# 6          6 -1.1595368        1          1
-
-# Load population-individual mapping
-population_individual_id_df <- read.csv(
+# Load population-to-individual mapping (F1 individuals)
+population_individual_id <- read.csv(
   system.file("extdata", "vignette_population_individual_id_df.csv", 
               package = "LAVA")
 )
 
-head(population_individual_id_df)
-#   pop_id individual
-# 1      1          1
-# 2      1          2
-# 3      1          3
-# 4      1          4
-# 5      1          5
-# 6      1          6
-\end{lstlisting}
-
-Visualize the trait distribution across populations to inspect patterns:
-
-\begin{lstlisting}
-# Create visualization
-unique_pops <- unique(trait_df_pop$population)
-n_pops <- length(unique_pops)
-colors <- rainbow(n_pops)
-
-plot(trait_df_pop$individual, trait_df_pop$trait,
-     col = colors[as.factor(trait_df_pop$population)],
-     pch = 19, cex = 0.8,
-     xlab = "Individual ID", 
-     ylab = "Trait Value (standardized)",
-     main = "Trait Distribution by Population")
-legend("topright", legend = paste("Pop", unique_pops), 
-       col = colors, pch = 19, cex = 0.8, bty = "n")
-\end{lstlisting}
-
-This plot helps visualize population-level trait differences and confirms that traits follow the expected pattern from the selection gradient (Figure \ref{fig:SSsine}).
-
-\subsection{Step 3: Calculate coancestry matrices}
-
-Use the \texttt{calculate\_coancestries()} function to compute the required matrices:
-
-\begin{lstlisting}
-coancestries_dosage <- calculate_coancestries(
-  genetic_data_parents = dos,
-  genotyped_parent_populations = pop,
-  genetic_data_F1 = dos_F1only_neutral,
-  population_individual_id = population_individual_id_df,
-  column_individual = "individual",
-  column_population = "pop_id",
-  all_parents_genotyped = TRUE,
-  verbose = TRUE
+# Load population IDs for genotyped parents
+pop_id <- readRDS(
+  system.file("extdata", "vignette_pop_id.rds", 
+              package = "LAVA")
 )
-# There are 18 populations.
-# Calculating Theta.P
-# Theta.P calculated with dimensions 18 18
-# Calculating M
-# population sizes of F1 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50
-# total individuals are 900
-# M calculated with dimensions 900 900
 
+# Examine the trait data
+cat("Trait data (first 6 rows):\n")
+print(head(trait_df_pop))
+
+cat("\nPopulation-individual mapping (first 6 rows):\n")
+print(head(population_individual_id))
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+Trait data (first 6 rows):
+  individual      trait      population
+1          1 -1.3250641               1
+2          2 -0.8642926               1
+3          3 -1.0746377               1
+4          4 -0.5960614               1
+5          5 -1.3298046               1
+6          6 -1.7154481               1
+
+Population-individual mapping (first 6 rows):
+  pop_id individual
+1      1          1
+2      1          2
+3      1          3
+4      1          4
+5      1          5
+6      1          6
+\end{verbatim}
+
+The trait data includes individual IDs, trait values, and population assignments.
+
+\subsection{Calculating Coancestries}
+
+Now we calculate the two coancestry matrices needed for LAVA: $\Theta_P$ (population-level) and $M$ (individual-level). The \texttt{calculate\_coancestries()} function handles all the computation:
+
+\begin{lstlisting}
+# Step 3: Calculate coancestry matrices
+coancestries_dosage <- calculate_coancestries(
+  genetic_data_parents          = dos_P_neutral,
+  genotyped_parent_populations  = pop_id,
+  genetic_data_F1               = dos_F1only_neutral,
+  population_individual_id      = population_individual_id,
+  column_individual             = "individual",
+  column_population             = "pop_id",
+  all_parents_genotyped         = TRUE
+)
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+There are  18  populations. 
+Calculating Theta.P 
+Theta.P calculated with dimensions 18 18 
+Calculating M 
+population sizes of F1 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 50 
+total individuals are  900 
+pop:  0 
+pop:  1 
+pop:  2 
+...
+pop:  17 
+There are 50 individuals in population 1 for calculating the M matrix
+There are 50 individuals in population 2 for calculating the M matrix
+...
+There are 50 individuals in population 18 for calculating the M matrix
+M calculated with dimensions  900 900
+\end{verbatim}
+
+Now let's extract them and check their properties:
+
+\begin{lstlisting}
 # Extract the matrices
 Theta.P <- coancestries_dosage$Theta.P
 M <- coancestries_dosage$M
 
-# Verify dimensions
-dim(Theta.P)  # [1] 18 18  (populations x populations)
-dim(M)        # [1] 900 900  (individuals x individuals)
+cat("\nCoancestry matrices calculated:\n")
+cat("  Theta.P dimensions:", dim(Theta.P), "\n")
+cat("  M dimensions:", dim(M), "\n")
 \end{lstlisting}
 
-\subsection{Step 4: Run LAVA analysis}
+\textbf{Output:}
+\begin{verbatim}
+Coancestry matrices calculated:
+  Theta.P dimensions: 18 18 
+  M dimensions: 900 900
+\end{verbatim}
 
-Now we can run the LAVA analysis using the coancestry matrices and trait data:
+If either matrix is not positive definite (minimum eigenvalue $< 0$), LAVA will automatically correct it using \texttt{nearPD} and issue a warning. However, it is important to note that non-positive-definiteness can signal issues in the estimation of relatedness. If you receive a non-positive-definite warning, ensure that your individuals are correctly attributed to their populations of origin and double-check individual identification. If there are very negative eigenvalues, the correction from \texttt{nearPD} might require large distortions of the relatedness patterns. 
+
+\subsection{Running LAVA}
+
+\subsubsection{Basic Analysis Without Covariates}
+
+Now we run the main LAVA analysis. This fits a Bayesian mixed-effects model to test whether the trait shows evidence of local adaptation:
 
 \begin{lstlisting}
+# Step 4: Run LAVA analysis
 results <- lava(
-  Theta.P = Theta.P,
-  M = M,
-  trait_dataframe = trait_df_pop,
-  column_individual = "individual",
-  column_trait = "trait",
-  save_full_model = FALSE,  # Save memory
-  iter = 4000,           
-  warmup = 2000,         
-  control = list(adapt_delta = 0.95, max_treedepth = 12)
+  Theta.P            = Theta.P,
+  M =                = M,
+  trait_dataframe    = trait_df_pop,
+  column_individual  = "individual",
+  column_trait       = "trait",
+  iter               = 4000,                
+  control            = list(adapt_delta = 0.95, max_treedepth = 12)  
 )
 \end{lstlisting}
 
-\subsection{Step 5: Interpret results}
+The function will print information about the model being fit:
 
-View a concise summary of the results:
+\textbf{Initial output:}
+\begin{verbatim}
+Using formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)) 
+Total rows: 900  ; complete rows used: 900 
+Compiling Stan program...
+Start sampling
 
-\begin{lstlisting}
-summary(results)
+SAMPLING FOR MODEL 'anon_model' NOW (CHAIN 1).
+Chain 1: 
+Chain 1: Gradient evaluation took 0.000544 seconds
+Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.44 seconds.
+Chain 1: Adjust your expectations accordingly!
+...
+\end{verbatim}
 
-# === LAVA Summary ===
-# 
-# Trait: trait
-# 
-# Log-Ratio of Ancestral Variances (log(VB/VA)):
-#   Mean:    1.2345
-#   Median:  1.2234
-#   95% CI: [0.8765, 1.6789]
-#   P-value: 0.0012 *
-\end{lstlisting}
+The model will take a few minutes to run. After sampling completes, LAVA prints a model summary:
 
-For detailed output including convergence diagnostics:
+\textbf{Model summary output:}
+\begin{verbatim}
+=== Model Summary ===
+ Family: gaussian 
+  Links: mu = identity 
+Formula: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)) 
+   Data: dat (Number of observations: 900) 
+  Draws: 4 chains, each with iter = 4000; warmup = 2000; thin = 2;
+         total post-warmup draws = 4000
 
-\begin{lstlisting}
-print(results)
+Multilevel Hyperparameters:
+~ind (Number of levels: 900) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.39      0.03     0.34     0.45 1.01      278      468
 
-# === LAVA Analysis Results ===
-#
-# Trait analyzed: trait
-# Formula used: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + ...
-#
-# --- Log-Ratio of Ancestral Variances ---
-#   Mean: 1.2345
-#   Median: 1.2234
-#   95% Credible Interval: [0.8765, 1.6789]
-#   P-value: 0.0012
-#
-# --- Convergence Diagnostics ---
-#   Max R-hat: 1.00 (OK)
-#   Divergent transitions: 0 (OK)
-\end{lstlisting}
+~pop (Number of levels: 18) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     1.13      0.23     0.79     1.68 1.00     2384     3118
 
-Examine the posterior samples (now showing V\_AB and V\_AW columns):
+Regression Coefficients:
+          Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept    -0.30      0.66    -1.60     1.02 1.00     2947     3212
 
-\begin{lstlisting}
-head(results$sampling)
-#   b_Intercept sd_pop__Intercept sd_ind__Intercept  V_AB   V_AW log_ratio
-#1     -0.00658             0.752             0.410 0.566  0.168      1.22
-#2     -0.19000             0.672             0.355 0.452  0.126      1.27
-#3      0.24400             0.960             0.391 0.922  0.153      1.80
-#4      0.37500             1.200             0.368 1.430  0.135      2.36
-#5     -0.20000             0.686             0.363 0.471  0.132      1.27
-#6      0.39900             0.835             0.366 0.697  0.134      1.65
-\end{lstlisting}
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     0.22      0.02     0.17     0.26 1.02      243      315
+\end{verbatim}
 
-Where:
+\textbf{Understanding the model output:}
+
 \begin{itemize}
-\item \texttt{V\_AB}: Ancestral variance estimated from between-population effects
-\item \texttt{V\_AW}: Ancestral variance estimated from within-population effects  
-\item \texttt{log\_ratio}: $\log(V_{AB}/V_{AW})$, the test statistic
+\item \textbf{sd(Intercept) for $\sim$pop}: This is the estimated standard deviation of the population random effect, which equals $\sqrt{V_{ \mathcal{A},B}}$. Here: 1.13, so $V_{ \mathcal{A},B} \approx 1.13^2 = 1.28$.
+
+\item \textbf{sd(Intercept) for $\sim$ind}: This is the estimated standard deviation of the individual random effect, which equals $\sqrt{V_{ \mathcal{A},W}}$. Here: 0.39, so $V_{ \mathcal{A},W} \approx 0.39^2 = 0.15$.
+
+\item \textbf{sigma}: Residual standard deviation (environmental/non-additive genetic variation)
+
 \end{itemize}
 
-Visualize the posterior distribution:
+\subsubsection{Interpreting the Results}
+
+Now let's examine the LAVA-specific output:
 
 \begin{lstlisting}
+# View the results
+print(results)
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+=== LAVA Analysis Results ===
+
+Trait analyzed: trait 
+Formula used: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)) 
+
+--- Log-Ratio of Ancestral Variances ---
+  Mean: 2.0713
+  Median: 2.0514
+  95% Credible Interval: [1.3159, 2.9515]
+  P-value: 0.0000
+
+--- Convergence Diagnostics ---
+  Max R-hat: 1.0167 (WARNING: > 1.01)
+  Divergent transitions: 0
+
+Use plot() to visualize the posterior distribution.
+\end{verbatim}
+
+\textbf{Key results explained:}
+
+\begin{itemize}
+\item \textbf{Log-Ratio Mean/Median (2.07/2.05)}: The log-ratio $\log(V_{ \mathcal{A},B}/V_{ \mathcal{A},W})$ is substantially greater than zero. This is computed from the posterior samples: for each MCMC sample, we calculate $\log(\text{sd\_pop}^2 / \text{sd\_ind}^2)$.
+
+\item \textbf{95\% Credible Interval [1.32, 2.95]}: There is 95\% probability that the log-ratio lies in this range. Importantly, this interval does not include zero, providing strong evidence against neutrality.
+
+\item \textbf{P-value: 0}: This is the Bayesian p-value testing $H_0$: LogAV $= 0$. A value this small provides evidence that it is unlikely drift alone would have caused the observed patterns of divergence. Note that the lowest values depend on the total number of iterations. Here, we can say that p < 1/4000 = 0.00025
+
+\item \textbf{Interpretation}: Since LogAV is significantly $> 0$ (i.e., $V_{ \mathcal{A},B} > V_{ \mathcal{A},W}$), it indicates \textbf{local adaptation}. This result, together with the p-value, points to populations having diverged in this trait more than expected under neutral evolution alone, suggesting that selection has driven phenotypic differentiation.
+\end{itemize}
+
+\textbf{Examining posterior samples:}
+
+You can inspect the raw posterior samples that LAVA saved:
+
+\begin{lstlisting}
+# First few posterior samples
+print(head(results$sampling))
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+# A tibble: 6 x 6
+  b_Intercept sd_pop__Intercept sd_ind__Intercept  V_AB  V_AW log_ratio
+        <dbl>             <dbl>             <dbl> <dbl> <dbl>     <dbl>
+1     -0.965              1.54              0.409 2.38  0.167      2.65
+2     -0.607              0.998             0.416 0.995 0.173      1.75
+3     -1.31               1.25              0.426 1.57  0.181      2.16
+4      0.384              1.25              0.425 1.57  0.181      2.16
+5     -0.103              1.11              0.427 1.23  0.182      1.91
+6     -0.0256             0.720             0.432 0.518 0.187      1.02
+\end{verbatim}
+
+Each row is one MCMC sample. The columns are:
+\begin{itemize}
+\item \texttt{b\_Intercept}: Overall mean (varies due to sampling uncertainty)
+\item \texttt{sd\_pop\_\_Intercept}: $\sqrt{V_\mathcal{{A},B}}$ for this sample
+\item \texttt{sd\_ind\_\_Intercept}: $\sqrt{V_\mathcal{{A},W}}$ for this sample
+\item \texttt{V\_AB}: $V_\mathcal{{A},B}$ (additive ancestral variance got from the between-subpopulation divergence)
+\item \texttt{V\_AW}: $V_{ \mathcal{A},W}$ (additive ancestral variance got from the variation within subpopulations)
+\item \texttt{log\_ratio}: $\log(V_{ \mathcal{A},B}/V_{ \mathcal{A},W})$ for this sample
+\end{itemize}
+
+\textbf{Visualizing the posterior:}
+
+\begin{lstlisting}
+# Plot the posterior distribution of the log-ratio
 plot(results)
 \end{lstlisting}
 
-\subsection{Interpretation}
-
-In this example:
+This produces a density plot of the log-ratio posterior distribution (Figure \ref{fig:posterior} , showing:
 \begin{itemize}
-\item The mean log-ratio is significantly greater than zero ($p < 0.05$)
-\item $V_{AB} > V_{AW}$, indicating that between-population variance exceeds within-population variance after accounting for population structure
-\item This provides evidence for \textbf{local adaptation}: populations have diverged more than expected under neutral evolution
-\item The 95\% credible interval does not include zero, supporting this conclusion
+\item The median (dashed line)
+\item The 95\% credible interval (dotted lines)
+\item The full posterior density
 \end{itemize}
 
-A positive log-ratio suggests that selection has caused greater differentiation between populations than drift alone would produce. The magnitude of the effect can be interpreted from the posterior distribution of the log-ratio.
-\section{Advanced Topics}
-\subsection{Pick your prior}
-As it should be clear by now, the \texttt{lava()} function uses Bayesian inference through the \texttt{brms} package, and is through it that the ancestral variances are estimated. Thus, it requires you to specify a \textbf{prior}; the probability distribution that will describe the prior beliefs about your parameters. 
-We rely on the default priors from the brms package that should be sensible for most use cases and which we verified result in a calibrated test in our trials of the method.
+Because the distribution is well above zero, we have strong evidence for local adaptation (See Figure \ref{fig:posterior}).
 
-\subsection{Common questions}
+\begin{figure}
+    \centering
+    \includegraphics[width=0.9\linewidth]{posteriorplot.png}
+    \caption{Posterior distribution of LogAV.}
+    \label{fig:posterior}
+\end{figure}
 
+\textbf{Additional components in the results object:}
+
+The results object contains:
+\begin{itemize}
+\item \texttt{sampling}: Posterior samples (data frame if save\_full\_model=FALSE, brmsfit object if TRUE)
+\item \texttt{log\_ratio}: Summary statistics for the log-ratio
+\item \texttt{hypothesis}: Results from brms hypothesis testing
+\item \texttt{trait\_name}: Name of the analyzed trait
+\item \texttt{formula\_used}: The model formula
+\item \texttt{convergence}: Convergence diagnostics (Rhat, divergences)
+\end{itemize}
+
+\subsection{Analyzing Environmental Covariate}
+
+\begin{lstlisting}
+# Step 5: Load environmental data and run LAVA with environment
+trait_df_pop_env <- read.csv(
+  system.file("extdata", "vignette_environment_df.csv", package = "LAVA")
+)
+\end{lstlisting}
+
+\begin{lstlisting}
+print(head(trait_df_pop_env))
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+  individual      trait  population environment
+1          1 -1.3250641           1          -5
+2          2 -0.8642926           1          -5
+3          3 -1.0746377           1          -5
+4          4 -0.5960614           1          -5
+5          5 -1.3298046           1          -5
+6          6 -1.7154481           1          -5
+\end{verbatim}
+
+\begin{lstlisting}
+#Running LAVA analysis with environmental covariate
+results_env <- lava(
+  Theta.P = Theta.P,
+  M = M,
+  trait_dataframe = trait_df_pop_env,
+  column_individual = "individual",
+  column_trait = "trait",
+  formula_covariates = "environment",
+  save_full_model = FALSE,
+  iter = 4000,           
+  warmup = 2000,         
+  control = list(adapt_delta = 0.95, max_treedepth = 12)  
+)
+\end{lstlisting}
+
+\textbf{Output:}
+\begin{verbatim}
+    Multilevel Hyperparameters:
+~ind (Number of levels: 900) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.40      0.03     0.35     0.47 1.01      206      246
+
+~pop (Number of levels: 18) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     0.26      0.15     0.02     0.58 1.01      887     1650
+
+Regression Coefficients:
+            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept      -0.07      0.18    -0.45     0.29 1.00     2738     2332
+environment     0.48      0.04     0.38     0.56 1.00     3200     2373
+
+Further Distributional Parameters:
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     0.21      0.02     0.16     0.25 1.01      197      214
+\end{verbatim}
+
+
+\section{Advanced Usage}
+
+\subsection{Including Additional Covariates}
+
+Beyond environmental variables, you may want to include other covariates in your model to account for confounding factors or experimental design elements. These could be biological ones (sex, age, body size) or experimental design factors (common garden block, measurement year, rearing container).
+
+\textbf{How to include covariates:}
+
+Covariates should be columns in your trait data frame, which should be the same name you include in your covariates formula. You specify them using the \texttt{formula\_covariates} parameter:
+
+\begin{lstlisting}
+# Example: Including sex as a covariate
+result_with_sex <- lava(
+  Theta.P               = Theta.P,
+  M                     = M,
+  trait_dataframe       = trait_data,
+  column_individual     = "id",
+  column_trait          = "trait_value",
+  column_population     = "population",
+  formula_covariates    = "sex"
+)
+
+# Multiple covariates
+result_multiple <- lava(
+  Theta.P               = Theta.P,
+  M                     = M,
+  trait_dataframe       = trait_data,
+  column_individual     = "id",
+  column_trait          = "trait_value",
+  formula_covariates    = "sex + age + block"
+)
+\end{lstlisting}
+
+\textbf{Important notes:}
+\begin{itemize}
+\item Continuous covariates are automatically standardized (mean-centered and scaled by standard deviation) before fitting
+\item Categorical covariates should be coded as factors in R
+\item The model estimates fixed effects for each covariate while still accounting for population structure through the random effects
+\item You can examine covariate effects in the model summary
+\end{itemize}
+
+\subsubsection{Custom Model Specifications}
+
+LAVA uses \texttt{brms} for model fitting, which provides extensive flexibility for customization. You can pass additional arguments to \texttt{brms} through the \texttt{lava()} function.
+
+\textbf{Custom Priors:}
+
+By default, LAVA uses the default priors from \texttt{brms}. However, you may want to specify custom priors based on your system or prior knowledge, doing the following:
+
+\begin{lstlisting}
+library(brms)
+
+# Define custom priors
+my_priors <- c(
+  prior(normal(0, 1), class = sd, group = pop),
+  prior(normal(0, 1), class = sd, group = ind),
+  prior(normal(0, 0.5), class = sigma)
+)
+
+# Run LAVA with custom priors
+result_custom <- lava(
+  Theta.P           = Theta.P,
+  M                 = M,
+  trait_dataframe   = trait_data,
+  column_individual = "id",
+  column_trait      = "trait_value",
+  prior             = my_priors  # passed to brms
+)
+\end{lstlisting}
+
+\textbf{MCMC Settings:}
+
+You can adjust the MCMC sampling parameters for better convergence or faster computation:
+
+\begin{lstlisting}
+# More iterations for difficult models
+result_long <- lava(
+  Theta.P           = Theta.P,
+  M                 = M,
+  trait_dataframe   = trait_data,
+  column_individual = "id",
+  column_trait      = "trait_value",
+  iter              = 8000,      # default: 5000
+  warmup            = 3000,    # default: 2000
+  thin              = 3,         # default: 2
+  chains            = 6       
+)
+
+# Adjust adapt_delta for divergent transitions
+result_adapted <- lava(
+  Theta.P = Theta.P,
+  M = M,
+  trait_dataframe = trait_data,
+  column_individual = "id",
+  column_trait = "trait_value",
+  control = list(adapt_delta = 0.99)  # default: 0.8
+)
+\end{lstlisting}
+
+\textbf{Measurement Error:}
+
+If you have standard errors for your trait measurements, include them to account for measurement uncertainty:
+
+\begin{lstlisting}
+# Your trait data should have an SE column
+head(trait_data)
+#   id      trait_value  trait_se
+#   F001    15.2         0.5
+#   F002    14.8         0.4
+
+result_with_se <- lava(
+  Theta.P           = Theta.P,
+  M                 = M,
+  trait_dataframe   = trait_data,
+  column_individual = "id",
+  column_trait      = "trait_value",
+  column_se         = "trait_se"  # specify SE column
+)
+\end{lstlisting}
+
+\subsubsection{Model Fit}
+
+Bayesian models require careful checking of convergence diagnostics to ensure the results are reliable.
+
+\textbf{Checking the LAVA output:}
+
+The LAVA results object includes basic convergence diagnostics:
+
+\begin{lstlisting}
+# After running lava()
+result$convergence
+
+# $n_divergent
+# [1] 0
+#
+# $max_rhat
+# [1] 1.002
+\end{lstlisting}
+
+\textbf{Accessing the full brms model:}
+
+For further analysis and diagnostics, save the full brms model:
+
+\begin{lstlisting}
+result_full <- lava(
+  Theta.P           = Theta.P,
+  M                 = M,
+  trait_dataframe   = trait_data,
+  column_individual = "id",
+  column_trait      = "trait_value",
+  save_full_model   = TRUE
+)
+\end{lstlisting}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Theoretical Background}
+
+\subsection{The Problem with $Q_{ST}$-$F_{ST}$}
+
+The classical approach to detecting local adaptation in quantitative traits is the $Q_{ST}$-$F_{ST}$ comparison \citep{spitze1993population}. This method compares quantitative trait differentiation, measured through $Q_{ST}$, to the neutral expectation calculated from neutral markers ($F_{ST}$). Under neutrality, $Q_{ST}$ should equal $F_{ST}$ on average.
+
+$Q_{ST}$ is defined as:
+$$Q_{ST} = \frac{V_B}{V_B + 2V_W}$$
+
+where $V_B$ is the additive genetic variance between populations and $V_W$ is the additive genetic variance within populations.
+
+The issue we were focusing on addressing with lava lies on a critical assumption of  $Q_{ST}$-$F_{ST}$ methods. $Q_{ST}$-$F_{ST}$ methods assume that all subpopulations are equally related, that is, they follow an island model with uniform migration rates and equal effective population sizes. Under this assumption, $F_{ST}$ is a scalar that adequately describes population structure.
+
+However, metapopulations are not likely to follow an island model. Instead, we expect metapopulations to have isolation by distance, potentially hierarchical structures with some subpopulations clustering into distinct lineages, variable effective sizes with some subpopulations having higher inbreeding than others, and so on.
+
+When population structure deviates from the island model, $Q_{ST}$-$F_{ST}$ comparisons can produce inflated false positive rates \citep{de2022common,do2025method}. This occurs because the method incorrectly assumes equal relatedness between all population pairs when calculating the expected neutral divergence.
+
+LAVA addresses the limitations of $Q_{ST}$-$F_{ST}$ by explicitly modeling population structure using coancestry matrices rather than relying on a single summary statistic.
+
+The method is based on the premise that, under neutrality, we can estimate the ancestral additive genetic variance in two independent ways, and these estimates should agree.
+
+Consider a metapopulation that descended from a common ancestral population. The ancestral population had some additive genetic variance $V_\mathcal{A}$. As populations diverged through drift and limited gene flow, this ancestral variance became partitioned into between-population and within-population components.
+
+We can estimate $V_\mathcal{A}$ using:
 \begin{enumerate}
-\item Can the same dosage data be used to calculate \textbf{M} and $\mathbf{\Theta}^P$? Ideally not. $\mathbf{\Theta}^P$ should describe the relatedness the neutral structure of the populations we are comparing. When we expose F1 to our common gardens we are likely reducing the effect of selection and increasing the effects of drift from separating the populations and from introduced sampling variance. We note on our discussion, there are ways to reconstruct the parental genotypes and thus get $\mathbf{\Theta}^P$ from only sampling genetic data of the common gardens populations. And as reviewer 2 pointed out given reliable ways of estimating the amount of drift between the founder population and the common gardens generation, the issue would be ameliorated
-\item Is it necessary to use common gardens? We advise to always use a strategy to standardize the environmental effects over phenotypic measurements. Similarly to the classical framework of $Q_{ST}$--$F_{ST}$ comparison, our method will be impacted by confounding effects of the environment (through phenotypic plasticity) and, even more problematically, by genotype-by-environment interactions. 
+\item \textbf{Between-population information} ($\hat{V}_{A,B}$): How populations diverged from each other
+\item \textbf{Within-population information} ($\hat{V}_{A,W}$): How individuals within populations are related
 \end{enumerate}
+
+Under neutrality: $E[V_ \mathcal{{A},B}] = E[V_ \mathcal{{A},W}] = V_\mathcal{A}$
+
+Under selection:
+\begin{itemize}
+\item \textbf{Local adaptation}: $V_ \mathcal{{A},B} > V_ \mathcal{{A},W}$ (populations diverged more than expected)
+\item \textbf{Global adaptation}: $V_{ \mathcal{A},B} < V_{ \mathcal{A},W}$ (populations converged due to similar selection)
+\end{itemize}
+
+\subsubsection{The Statistical Model}
+
+LAVA fits a Bayesian linear mixed-effects model (through \texttt{brms} to the phenotypic data:
+
+$$z = \mu + X\beta + a_p + a_i + \epsilon$$
+
+where:
+\begin{itemize}
+\item $z$ is the vector of phenotypic measurements (standardized)
+\item $\mu$ is the overall mean
+\item $X\beta$ represents fixed effects (environmental covariates, experimental factors, etc.)
+\item $a_p$ is the population-level random effect
+\item $a_i$ is the individual-level random effect
+\item $\epsilon$ is residual error
+\end{itemize}
+
+The random effects are distributed as:
+\begin{align}
+a_p &\sim N(0, 2\Theta_p V_{ \mathcal{A},B}) \\
+a_i &\sim N(0, M V_{ \mathcal{A},W})
+\end{align}
+
+The model simultaneously estimates $V_{ \mathcal{A},B}$ and $V_{ \mathcal{A},W}$, along with all other parameters, using Markov Chain Monte Carlo (MCMC) sampling.
+
+\subsubsection{The Test Statistic}
+
+The log-ratio of the two variance estimates provides our test statistic:
+
+$$\text{LogAV} = \log\left(\frac{\hat{V}_{ \mathcal{A},B}}{\hat{V}_{ \mathcal{A},W}}\right)$$
+
+The Bayesian framework provides a full posterior distribution for LogAV, from which we compute the p-value.
+
+
+\subsection{Coancestry Matrices}
+
+LAVA uses two coancestry matrices to model population structure:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%% !!!!!!!!!!!!! ATTENTION !!!!!!!! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% These are two different ways I can present the matrices, and I haven't decided on which one: 
+%Option 1)
+%\begin{itemize}
+%\item \textbf{$\Theta_P$ (r $\times$ r)}: Population coancestry matrix, of a metapopulation of r subpopulations. Each element represents the probability of identity by descent (IBD) between random alleles from two populations. Diagonal elements represent within-population coancestry; off-diagonal elements represent between-population coancestry. In a stepping-stone model, you would expect populations that are closer together to have higher coancestry values.
+
+%\item \textbf{$M$ (N $\times$ N)}: Individual relatedness matrix for F1 individuals, adjusted for population structure, with a total of N individuals analyzed. This is block-diagonal because we only have within-population crosses. Each $n_i\times n_i$ block corresponds to one population's F1 individuals, with $n_i$ representing the size of subpopulation $i$. Each element represents the calculated coancestry between pairs of individuals within the same subpopulation.
+
+%\end{itemize}
+
+%Option 2)
+\subsubsection{Population-Level Coancestry ($\Theta_P$)}
+
+$\Theta_P$ is an $r \times r$ matrix (where $r$ is the number of populations) that describes relatedness among populations.
+
+Element $\Theta_{P,ij}$ represents the average probability of identity by descent (IBD) between a random allele from population $i$ and a random allele from population $j$, relative to the ancestral population.
+
+\textbf{Calculation:} LAVA uses the allele-sharing method of moments \citep{weir2017unified,goudet2023allele}:
+
+$$\hat{\Theta}_P = \frac{\bar{A}^{\mathcal{P}}_s - \min(\bar{A}^{\mathcal{P}}_s)}{1 - \min(\bar{A}^{\mathcal{P}}_s)}$$
+
+where $\bar{A}^{\mathcal{P}}_s$ is a matrix of population-level allele-sharing statistics. Diagonal elements $\Theta_{P,ii}$ represent average coancestry within population $i$. Off-diagonal elements $\Theta_{P,ij}$ represent coancestry between populations $i$ and $j$. Higher values indicate closer relatedness (more recent common ancestry or more gene flow). The matrix captures the complete demographic history and structure.
+
+In a stepping-stone model, like the one we used in our tutorial section, you would expect populations that are closer together to have higher coancestry values, which is what we show in Figure \ref{fig:thetap}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{heatmap_Theta_P_SS.jpg}
+    \caption{Population-level coancestry matrix describing the simulated stepping stones structure used in the tutorial.}
+    \label{fig:thetap}
+\end{figure}
+
+
+\subsubsection{Individual-Level Relatedness ($M$)}
+
+$M$ is an $n \times n$ matrix (where $n$ is the number of F1 individuals) that describes genetic relationships among individuals within populations.
+
+For common garden designs with within-population crosses, $M$ is block-diagonal, with each block corresponding to one population.
+
+The within-population relatedness is adjusted to account for the population-level coancestry:
+
+$$\hat{M}_x = \text{relatedness}_x \times (1 - \hat{\Theta}^P_x)$$
+
+where $\hat{\Theta}^P_x$ is the diagonal element of $\hat{\Theta}_P$ for population $x$.
+
+This adjustment is critical because it ensures that $M$ captures relatedness beyond what is already explained by population membership.
+
+$M$ is estimated from either the F1 genetic data (using the same allele-sharing method) or the pedigree information (using standard kinship coefficients).
+
+You can see the structure of M used in the example dataset of our tutorial in Figure \ref{fig:M}.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{heatmap_TheM_SS.jpg}
+    \caption{Individual-level coancestry matrix for the example used in our tutorial.}
+    \label{fig:M}
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Common Questions}
+
+\subsubsection{Can I use the same genetic data to calculate both $M$ and $\Theta_P$?}
+
+Ideally, no. $\Theta_P$ should describe the neutral structure of the source populations in the wild, while $M$ describes relatedness among F1 individuals in the common garden. Measuring both through F1 will not consider that you have added one new generation of drift from the breeding process.
+
+
+\subsubsection{Is a common garden necessary?}
+
+Yes, we strongly recommend using a common garden or another strategy to standardize environmental effects.  Like $Q_{ST}$-$F_{ST}$ methods, LAVA results without common gardens can be confounded by phenotypic plasticity (or environmental effects) and genotype-by-environment interactions.  Without environmental standardization, you cannot reliably distinguish genetic differences from environmental effects or plasticity.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Getting Help}
 
+If you encounter issues not covered in this vignette:
+
 \begin{itemize}
-\item Package documentation: \texttt{help(package = "LAVA")}
-\item Function help: \texttt{?lava}, \texttt{?calculate\_coancestries}
-\item GitHub repository: \url{https://github.com/isadoo/LAVA}
-\item GitHub issues: \url{https://github.com/isadoo/LAVA/issues}
-\item Contact: isabela.doo@unil.ch
-\item Using kinship2 instead of our own function, see \texttt{KINSHIP2\_MIGRATION.md} in the package documentation
+\item \textbf{Package documentation:} \texttt{help(package = "LAVA")}
+\item \textbf{Function help:} \texttt{?lava} or \texttt{?calculate\_coancestries}
+\item \textbf{GitHub repository:} \url{https://github.com/isadoo/LAVA}
+\item \textbf{Email contact:} jeronimoisabela@gmail.com
+\item \textbf{Report issues:} \url{https://github.com/isadoo/LAVA/issues}
+\end{itemize}
+
+For issues with \texttt{brms} specifically:
+\begin{itemize}
+\item \textbf{brms documentation:} \url{https://paul-buerkner.github.io/brms/}
+\item \textbf{Stan forums:} \url{https://discourse.mc-stan.org/}
 \end{itemize}
 
 
 \bibliographystyle{plainnat}
-\bibliography{references}
-
-\appendix
-
-\section{Example usage with real data}
-\begin{lstlisting}
-data("stickleback_example") # Hypothetical dataset
-
-# Morphological traits
-morphological_traits <- c("standard_length", "body_depth", 
-                         "head_length", "pelvic_girdle_length")
-
-# Behavioral traits  
-behavioral_traits <- c("aggression", "risk_taking")
-
-# Analyze each trait
-morph_results <- lapply(morphological_traits, function(trait) {
-  lava(Theta.P = stickleback_Theta.P,
-       M = stickleback_M,
-       trait_dataframe = stickleback_traits,
-       column_trait = trait)
-})
-names(morph_results) <- morphological_traits
-
-# Summary table
-results_table <- data.frame(
-  Trait = names(morph_results),
-  Mean_LogRatio = sapply(morph_results, function(x) x$log_ratio$mean_log_ratio),
-  P_value = sapply(morph_results, function(x) x$log_ratio$p_value),
-  Significant = sapply(morph_results, function(x) x$log_ratio$p_value < 0.05)
-)
-
-print(results_table)
-\end{lstlisting}
-\section{Example Output}
-
-\begin{verbatim}
-===============================
-Log Ancestral Variance Analysis (LAVA)
-===============================
-
-Log ratio of estimated ancestral variances (between equation/ within equation):
-  Mean: 2.1483 (95% CI: 0.8542 to 3.4421)
-
-Difference in variance components (between equation/ within equation):
-  Mean: 0.3421
-  Median: 0.3387 (95% CI: 0.1234 to 0.5612)
-
-Statistical tests:
-  Hypothesis test p-value: 0.0285
-
-===============================
-\end{verbatim}
+\bibliography{bib}
 
 \end{document}
