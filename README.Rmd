@@ -33,18 +33,11 @@ knitr::opts_chunk$set(
 [![minimal R version](https://img.shields.io/badge/R%3E%3D-3.5-6666ff.svg)](https://cran.r-project.org/)
 <!-- badges: end -->
 
-> **⚠️ WORK IN PROGRESS**  
-> LAVA is currently under development. The package is public and available for testing, but please be aware that:
-> - Features and functions may change;
-> - Documentation is being improved;
-> - We are still testing the functions and usage;
-> - Breaking changes may occur in future versions.
-> 
-> We welcome feedback! Please report any issues on our [GitHub Issues page](https://github.com/isadoo/LAVA/issues), or if you have questions please reach out to isabela[dot]doo[at]unil[dot]ch
-
 ## Overview
 
 LAVA (Log ratio of Ancestral Variances) is an R package designed to help researchers analyze quantitative trait data in order to test for local adaptation following the method LogAV. We do that by comparing estimates of ancestral variances. The package provides tools for statistical analysis for identifying local adaptation.
+
+**We welcome your feedback!** If you have suggestions, questions, or find any issues, please reach out via our [GitHub Issues page](https://github.com/isadoo/LAVA/issues) or contact isabela[dot]doo[at]unil[dot]ch
 
 ## Installation
 
@@ -84,9 +77,15 @@ If you want to work on the development of LAVA, you may want to clone the reposi
 devtools::install(".", dependencies = TRUE)
 ```
 
-## Example (needs to be updated)
+## Getting Started
 
-This is a basic example which shows you how to use LAVA:
+We recommend starting with the comprehensive tutorial vignette to learn how to use LAVA effectively. The tutorial includes detailed explanations of the method, step-by-step examples, and guidance on interpreting results.
+
+You can find the tutorial in the [vignettes folder](vignettes/vignette_main.pdf) of the GitHub repository.
+
+## Example
+
+Here is a basic example showing how to use LAVA:
 
 ```{r example, eval=FALSE}
 library(LAVA)
@@ -113,11 +112,14 @@ The LAVA package provides:
 
 ## Documentation
 
-For more detailed information, please check ...?.
+For detailed documentation and tutorials, please see:
+- The package vignettes (especially the tutorial vignette)
+- Function documentation via `?function_name` in R
+- Our [GitHub repository](https://github.com/isadoo/LAVA)
 
 ## Contributing
 
-As the package is still experimental, please reach out via our [GitHub Issues page](https://github.com/isadoo/LAVA/issues) if you'd like to contribute
+We welcome contributions! Please reach out via our [GitHub Issues page](https://github.com/isadoo/LAVA/issues) if you'd like to contribute or have suggestions, or by email through isabela.doo@unil.ch
 
 ## Getting Help
 
@@ -125,8 +127,7 @@ As the package is still experimental, please reach out via our [GitHub Issues pa
 - For questions about usage, feel free to contact isabela.doo@unil.ch
 
 ## Citation
-If you use LAVA in your research, please cite:
-[add citation for the two papers]
+If you use LAVA in your research, please cite: doi.org/10.1371/journal.pgen.1011871
 
 ## Acknowledgments
 
