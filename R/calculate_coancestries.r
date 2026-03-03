@@ -157,6 +157,15 @@ calculate_coancestries <- function(genetic_data_parents,
     min_Fst <- min(hierfstat::mat2vec(fst_founders$FsM))
     Theta_P <- (fst_founders$FsM - min_Fst) / (1 - min_Fst)
     if (verbose) cat("Theta.P calculated with dimensions", dim(Theta_P), "\n")
+    
+    # Check if Theta.P is positive definite
+    eigenvalues_ThetaP <- eigen(Theta_P)$values
+    if (any(eigenvalues_ThetaP < 0)) {
+        if (verbose) cat("Theta.P matrix not positive definite. \n")
+        if (verbose) cat("Minimum eigenvalue is ", min(eigenvalues_ThetaP), "\n")
+        Theta_P <- as.matrix(Matrix::nearPD(Theta_P, corr = TRUE)$mat)
+        if (verbose) cat("WARNING::Theta.P matrix corrected to be positive definite. \n")
+    }
     # --------------------------------------------------------------------------
 
 
