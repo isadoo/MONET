@@ -163,8 +163,9 @@ calculate_coancestries <- function(genetic_data_parents,
     if (any(eigenvalues_ThetaP < 0)) {
         if (verbose) cat("Theta.P matrix not positive definite. \n")
         if (verbose) cat("Minimum eigenvalue is ", min(eigenvalues_ThetaP), "\n")
-        Theta_P <- as.matrix(Matrix::nearPD(Theta_P, corr = TRUE)$mat)
-        if (verbose) cat("WARNING::Theta.P matrix corrected to be positive definite. \n")
+        Theta_P <- as.matrix(Matrix::nearPD(Theta_P)$mat)
+        eigenvalues_ThetaP_new <- eigen(Theta_P)$values
+        if (verbose) cat("Theta.P matrix corrected. New min eigenvalue: ", min(eigenvalues_ThetaP_new), "\n")
     }
     # --------------------------------------------------------------------------
 
@@ -244,8 +245,9 @@ calculate_coancestries <- function(genetic_data_parents,
     if (any(eigenvalues < 0)) {
         if (verbose) cat("M matrix not positive definite. \n")
         if (verbose) cat("Minimum eigenvalue is ", min(eigenvalues), "\n")
-        M <- as.matrix(Matrix::nearPD(M, corr = TRUE)$mat)
-        if (verbose) cat("WARNING::M matrix corrected to be positive definite. \n")
+        M <- as.matrix(Matrix::nearPD(M)$mat)
+        eigenvalues_new <- eigen(M)$values
+        if (verbose) cat("M matrix corrected. New min eigenvalue: ", min(eigenvalues_new), "\n")
     }
 
     if (verbose) cat("M calculated with dimensions ", dim(M), "\n")
