@@ -5,7 +5,8 @@
 #' 
 #' @usage lava(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
 #'             column_population = "population", column_se = NULL, formula_covariates = NULL, 
-#'             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE, ...)
+#'             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE,
+#'             standardize_trait = NULL, ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
 #'
@@ -34,6 +35,11 @@
 #' 
 #' @param save_full_model Logical. If TRUE, saves the full brms model object in the results.
 #' If FALSE (default), only minimal posterior samples (fixed effects, variance components, and log-ratio) are retained to save memory.
+#'
+#' @param standardize_trait Logical or NULL. Controls z-score standardization of the response trait.
+#' If TRUE, always standardize (unless variance is zero/non-finite). If FALSE, does NOT standardize.
+#' If NULL (default), the function auto-detects likely discrete traits (integer-like with <= 10 unique values)
+#' and skips standardization for those traits.
 #' 
 #' @param ... Additional arguments passed to the brms function.
 #'
@@ -67,6 +73,7 @@ lava <- function(Theta.P,
                  formula_covariates = NULL,
                  iter = 5000, warmup = 2000, thin = 2,
                  save_full_model = FALSE,
+                 standardize_trait = NULL,
                  ...) {
   
   #check input types and dimensions ------------------------
@@ -95,14 +102,29 @@ lava <- function(Theta.P,
                    We have have no way of knowing what is the correct number of individuals in each subpopulation."))
   }
   
-  Y <- trait_dataframe[,trait_col]
+  Y_raw <- trait_dataframe[, trait_col]
   
-  if (is.list(Y)) {
-    Y <- unlist(Y)
+  if (is.list(Y_raw)) {
+    Y_raw <- unlist(Y_raw)
   }
+
+  # Keep original values for coercion diagnostics
+  Y_raw_chr <- as.character(Y_raw)
   
-  #Ensure Y is numeric
-  Y <- as.numeric(Y)
+  # Ensure trait is numeric for current Gaussian-style model.
+  # If non-numeric values exist, fail early with a clear message.
+  Y <- suppressWarnings(as.numeric(Y_raw_chr))
+  coercion_failed <- !is.na(Y_raw_chr) & nzchar(trimws(Y_raw_chr)) & is.na(Y)
+  if (any(coercion_failed)) {
+    bad_values <- unique(Y_raw_chr[coercion_failed])
+    bad_preview <- paste(utils::head(bad_values, 5), collapse = ", ")
+    stop(
+      paste0(
+        "Trait column contains non-numeric values and cannot be modeled with the current Gaussian response. ",
+        "Example offending values: ", bad_preview, "."
+      )
+    )
+  }
   
   #remove any NAs
   valid_indices <- !is.na(Y)
@@ -111,15 +133,49 @@ lava <- function(Theta.P,
   #Filter the dataframe to match
   trait_dataframe <- trait_dataframe[valid_indices, ]
   
-  # Standardize
-  Y <- Y - mean(Y)
+  if (length(Y) < 2) {
+    stop("Not enough non-missing numeric trait values after filtering.")
+  }
+
   var_Y <- var(Y)
-  Y <- Y / sqrt(var_Y)
+  n_unique_y <- length(unique(Y))
+  integer_like <- all(abs(Y - round(Y)) < 1e-8)
+
+  # Determine whether to standardize
+  if (is.null(standardize_trait)) {
+    # Auto mode: skip standardization for likely discrete traits.
+    do_standardize <- !(integer_like && n_unique_y <= 10)
+    if (!do_standardize) {
+      warning(
+        "Trait appears discrete (integer-like with <= 10 unique values); skipping standardization in auto mode. ",
+        "Set standardize_trait = TRUE to force z-score standardization."
+      )
+    }
+  } else if (is.logical(standardize_trait) && length(standardize_trait) == 1 && !is.na(standardize_trait)) {
+    do_standardize <- standardize_trait
+  } else {
+    stop("standardize_trait must be TRUE, FALSE, or NULL.")
+  }
+
+  if (do_standardize) {
+    if (!is.finite(var_Y) || var_Y <= 0) {
+      warning("Trait variance is non-finite or zero; skipping standardization.")
+      do_standardize <- FALSE
+    }
+  }
+
+  if (do_standardize) {
+    Y <- Y - mean(Y)
+    Y <- Y / sqrt(var_Y)
+  }
   
   have_se <- !is.null(column_se) && (column_se %in% names(trait_dataframe))
   #Incorportate measurment errors (se) if provided
   if (have_se) {
-    Y_se <- trait_dataframe[[column_se]] / sqrt(var_Y)
+    Y_se <- as.numeric(trait_dataframe[[column_se]])
+    if (do_standardize) {
+      Y_se <- Y_se / sqrt(var_Y)
+    }
   }
 
 
@@ -173,19 +229,17 @@ lava <- function(Theta.P,
 
   if (have_se) {
     # Use measurement error on the response; still estimate residual sigma
-    model_formula <- brms::bf(as.formula(paste0("Y | se(Y_se, sigma = TRUE) ~ 1 + ", rhs)))
-    cat("Measurement SE column: ", column_se, " (scaled to standardized Y)\n", sep = "")
+    formula_string <- paste0("Y | se(Y_se, sigma = TRUE) ~ 1 + ", rhs)
+    model_formula <- brms::bf(as.formula(formula_string))
+    if (do_standardize) {
+      cat("Measurement SE column: ", column_se, " (scaled to standardized Y)\n", sep = "")
+    } else {
+      cat("Measurement SE column: ", column_se, " (not scaled; trait not standardized)\n", sep = "")
+    }
   } else {
-    model_formula <- as.formula(paste0("Y ~ 1 + ", rhs))
+    formula_string <- paste0("Y ~ 1 + ", rhs)
+    model_formula <- as.formula(formula_string)
   }
-
-  if (!is.null(formula_covariates)) {
-    formula_string <- paste0("Y ~ 1 + ", formula_covariates, " + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))")
-  } else {
-    formula_string <- base_formula
-  }
-  
-  model_formula <- as.formula(formula_string)
   
   cat("Using formula:", formula_string, "\n")
   
@@ -203,7 +257,7 @@ lava <- function(Theta.P,
   
   
   #Bayesian model - using brms package
-  #Use tryCatch to handle convergence issues gracefully
+  #Using tryCatch to handle convergence issues 
   brms_mf <- tryCatch({
     brm(
       formula = model_formula,
@@ -274,9 +328,9 @@ if (length(have_sd) == 2) {
     warning("No log_ratio samples found - cannot compute log-ratio summaries.")
   }
 
-  # ----------------------------
-      # preparing results object #
-  # ----------------------------
+  # ------------------------------------------------------------------------------------
+   # ~~~~~~~~~~~~   # preparing results object # ~~~~~~~~~~~~~~~~~~
+  # ------------------------------------------------------------------------------------
   results <- list(
   sampling = if (isTRUE(save_full_model)) {
     # Return the full brms model as 'sampling'
