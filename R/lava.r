@@ -46,6 +46,7 @@
 #' @return A lava type object containing:
 #' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (V_AB, V_AW), and log_ratio.}
 #' \item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds).}
+#' \item{covariate_p_values}{Named numeric vector with two-tailed posterior sign-probability p-values for fixed-effect covariates (excluding intercept). NULL when no covariates are present.}
 #' \item{hypothesis}{Results from brms hypothesis test comparing population vs individual variance.}
 #' \item{trait_name}{Name of the trait column analyzed.}
 #' \item{formula_used}{The model formula used in the analysis.}
@@ -140,6 +141,22 @@ lava <- function(Theta.P,
   var_Y <- var(Y)
   n_unique_y <- length(unique(Y))
   integer_like <- all(abs(Y - round(Y)) < 1e-8)
+    # Validate population column against Theta.P rownames (if population column exists in dataframe)
+  if (column_population %in% names(trait_dataframe)) {
+    pops_in_data <- unique(na.omit(trait_dataframe[[column_population]]))
+    pops_in_theta <- rownames(Theta.P)
+
+    missing_pops <- setdiff(pops_in_data, pops_in_theta)
+    if (length(missing_pops) > 0) {
+      stop(
+        paste0(
+          "The following population IDs in column '", column_population,
+          "' are not found in rownames(Theta.P): ",
+          paste(missing_pops, collapse = ", ")
+        )
+      )
+    }
+  }
 
   # Determine whether to standardize
   if (is.null(standardize_trait)) {
@@ -181,43 +198,105 @@ lava <- function(Theta.P,
 
   #From VB = VA*2FST
   two.Theta.P <- 2 * Theta.P
-  
-  pop_col <- if(column_population %in% names(trait_dataframe)) {
-    trait_dataframe[,column_population]
-  } else {
-    paste0("pop_", pop_ids)  # fallback to generated pop labels
-  }
-  
-  if (is.list(pop_col)) {
-    pop_col <- unlist(pop_col)
-  }
-  pop_col <- as.character(pop_col)
-  
+
   ind_col <- trait_dataframe[,id_col]
   if (is.list(ind_col)) {
     ind_col <- unlist(ind_col)
   }
   ind_col <- as.character(ind_col)
 
+  # Build an individual -> population lookup from M block structure.
+  # If block count matches Theta.P dimension, use Theta.P rownames as labels.
+  m_pop_lookup <- NULL
+  if (!is.null(rownames(M))) {
+    if (number_of_blocks == number_populations && !is.null(rownames(Theta.P))) {
+      block_labels <- rownames(Theta.P)[seq_len(number_of_blocks)]
+    } else {
+      block_labels <- paste0("pop_", seq_len(number_of_blocks))
+    }
+
+    m_pop_labels <- rep(block_labels, individuals_per_population_F1[seq_len(number_of_blocks)])
+    if (length(m_pop_labels) == nrow(M)) {
+      names(m_pop_labels) <- rownames(M)
+      m_pop_lookup <- m_pop_labels
+    }
+  }
+
+  if (column_population %in% names(trait_dataframe)) {
+    pop_col <- trait_dataframe[,column_population]
+    if (is.list(pop_col)) {
+      pop_col <- unlist(pop_col)
+    }
+    pop_col <- as.character(pop_col)
+
+    overlap_with_thetap <- sum(pop_col %in% rownames(Theta.P), na.rm = TRUE)
+    if (overlap_with_thetap == 0 && !is.null(m_pop_lookup)) {
+      warning(
+        sprintf(
+          "column_population='%s' has zero overlap with rownames(Theta.P); using M-based population mapping from individual IDs instead.",
+          column_population
+        )
+      )
+      pop_col <- unname(m_pop_lookup[ind_col])
+    }
+  } else if (!is.null(m_pop_lookup)) {
+    pop_col <- unname(m_pop_lookup[ind_col])
+  } else if (length(pop_ids) == length(ind_col)) {
+    pop_col <- paste0("pop_", pop_ids)
+  } else {
+    stop("Could not determine population labels from column_population or M block mapping.")
+  }
+
+  if (is.list(pop_col)) {
+    pop_col <- unlist(pop_col)
+  }
+  pop_col <- as.character(pop_col)
+
   #Build the data frame
   dat <- data.frame(pop = pop_col, ind = ind_col, Y = Y)
   if (have_se) dat$Y_se <- Y_se
 
+  # Align grouping levels with covariance matrix rownames.
+  # brms requires the factor levels used in gr() to match the covariance matrix names exactly.
+  if (is.null(rownames(M)) || is.null(rownames(Theta.P))) {
+    stop("Theta.P and M must have rownames that identify grouping levels.")
+  }
+
+  keep_ind <- dat$ind %in% rownames(M)
+  if (any(!keep_ind)) {
+    warning(sprintf(
+      "%d individuals were not represented in rownames(M), so they are not considered in the analysis.",
+      sum(!keep_ind)
+    ))
+    dat <- dat[keep_ind, , drop = FALSE]
+    trait_dataframe <- trait_dataframe[keep_ind, , drop = FALSE]
+  }
+
+  keep_pop <- dat$pop %in% rownames(Theta.P)
+  if (any(!keep_pop)) {
+    warning(sprintf(
+      "Dropping %d rows whose pop values are not present in rownames(Theta.P).",
+      sum(!keep_pop)
+    ))
+    dat <- dat[keep_pop, , drop = FALSE]
+    trait_dataframe <- trait_dataframe[keep_pop, , drop = FALSE]
+  }
+
+  dat$ind <- factor(dat$ind, levels = rownames(M))
+  dat$pop <- factor(dat$pop, levels = rownames(Theta.P))
+
   # Add any additional covariates that might be specified
   if (!is.null(formula_covariates)) {
-    # Extract covariate names from formula_covariates
-    covariate_names <- trimws(unlist(strsplit(formula_covariates, "\\+")))
+    # Extract real variable names from formula terms, including random-effect grouping vars
+    covariate_names <- unique(all.vars(stats::as.formula(paste("~", formula_covariates))))
     
-    # Add covariates to the data frame if they exist in trait_dataframe
     for (cov_name in covariate_names) {
       if (cov_name %in% names(trait_dataframe)) {
-        cov_data <- trait_dataframe[,cov_name]
-        if (is.list(cov_data)) {
-          cov_data <- unlist(cov_data)
-        }
+        cov_data <- trait_dataframe[, cov_name]
+        if (is.list(cov_data)) cov_data <- unlist(cov_data)
         dat[[cov_name]] <- cov_data
       } else {
-        warning(paste("Covariate", cov_name, "not found in trait_dataframe"))
+        stop(paste("Covariate", cov_name, "not found in trait_dataframe"))
       }
     }
   }
@@ -273,7 +352,7 @@ lava <- function(Theta.P,
   })
   
   # Print summary properly
-  cat("\n=== Model Summary ===\n")
+  cat("\n---- Model Summary ----\n")
   print(summary(brms_mf))
   cat("\n")
   
@@ -282,14 +361,24 @@ lava <- function(Theta.P,
   if (any(rhats > 1.01, na.rm = TRUE)) {
     warning("Some Rhat values > 1.01, indicating potential convergence issues")
   }
+
   
-  # Check for divergent transitions
+  
+  
+  # Extract sampling parameters directly from the fitted model
+  iter   <- brms_mf$fit@sim$iter      # total iterations (including warmup)
+  warmup <- brms_mf$fit@sim$warmup    # warmup iterations
+  chains <- brms_mf$fit@sim$chains    # number of chains
+  thin   <- brms_mf$fit@sim$thin      # thinning interval
+  post_warmup_transitions <- (iter - warmup) * chains
+  threshold_1pct <- 0.01 * post_warmup_transitions
   sampler_params <- brms::nuts_params(brms_mf)
-  n_divergent <- sum(sampler_params$divergent__)
+  # get divergent transitions and check if its under 1%
+  n_divergent    <- sum(subset(sampler_params, Parameter == "divergent__")$Value)
   if (n_divergent > 0) {
     warning(paste("Model had", n_divergent, "divergent transitions after warmup"))
   }
-  
+
   #variance components
   var_components <- lapply(VarCorr(brms_mf, summary = FALSE), function(x) x$sd^2)
   var_df <- as.data.frame(do.call(cbind, var_components))
@@ -306,13 +395,24 @@ sd_cols <- c("sd_pop__Intercept", "sd_ind__Intercept")     # two RE SDs
 
 have_sd <- sd_cols[sd_cols %in% names(all_draws)]
 
+# Covariate p-values from posterior sign probability (exclude intercept)
+covariate_p_values <- NULL
+cov_cols <- setdiff(fe_cols, "b_Intercept")
+if (length(cov_cols) > 0) {
+  covariate_p_values <- sapply(cov_cols, function(col) {
+    x <- all_draws[[col]]
+    2 * min(mean(x >= 0, na.rm = TRUE), mean(x <= 0, na.rm = TRUE))
+  })
+  names(covariate_p_values) <- sub("^b_", "", cov_cols)
+}
+
 if (length(have_sd) == 2) {
   minimal_samples <- all_draws[, unique(c(fe_cols, have_sd)), drop = FALSE]
   minimal_samples$V_AB  <- minimal_samples$sd_pop__Intercept^2
   minimal_samples$V_AW  <- minimal_samples$sd_ind__Intercept^2
   minimal_samples$log_ratio <- log(minimal_samples$V_AB / minimal_samples$V_AW)
 } else {
-  warning("Issue with your model - to use lava you should get a sd_pop__Intercept and sd_ind__Intercept in draws in order to have a log-ratio; minimal samples include only fixed effects.")
+  warning("Issue with your model - missing sd_pop__Intercept and sd_ind__Intercept")
 }
 
   # For summary stats below we still use post_samples with log_ratio
@@ -348,6 +448,8 @@ if (length(have_sd) == 2) {
     ci_upper = quant_log_ratio[2]
   ),
 
+  covariate_p_values = covariate_p_values,
+
   hypothesis = the_hyp$hypothesis[2:5],
   trait_name = names(trait_dataframe)[trait_col],
   formula_used = formula_string,
@@ -361,7 +463,7 @@ return(results)
 }
 #' @export
 print.lava <- function(x, ...) {
-  cat("\n=== LAVA Analysis Results ===\n\n")
+  cat("\n---- LAVA Analysis Results ----\n\n")
   cat("Trait analyzed:", x$trait_name, "\n")
   cat("Formula used:", x$formula_used, "\n\n")
   
@@ -389,7 +491,7 @@ print.lava <- function(x, ...) {
 
 #' @export
 summary.lava <- function(object, ...) {
-  cat("\n=== LAVA Summary ===\n\n")
+  cat("\n---- LAVA Summary ----\n\n")
   cat(sprintf("Trait: %s\n\n", object$trait_name))
   
   cat("Log-Ratio of Ancestral Variances (log(VB/VA)):\n")
@@ -400,6 +502,14 @@ summary.lava <- function(object, ...) {
   cat(sprintf("  p-value: %.4f %s\n", 
               object$log_ratio$p_value,
               ifelse(object$log_ratio$p_value < 0.05, "*", "")))
+
+  if (!is.null(object$covariate_p_values) && length(object$covariate_p_values) > 0) {
+    cat("\nCovariate posterior p-values:\n")
+    for (nm in names(object$covariate_p_values)) {
+      pv <- object$covariate_p_values[[nm]]
+      cat(sprintf("  %s: %.4g\n", nm, pv))
+    }
+  }
 
   cat("\n")
   invisible(object)
@@ -418,7 +528,7 @@ plot.lava <- function(x, ...) {
   } else {
     samp <- x$sampling
     if (is.null(samp) || !"log_ratio" %in% names(samp)) {
-      stop("No 'log_ratio' samples found. Refit or set save_full_model=TRUE so draws are available.")
+      stop("No 'log_ratio' samples found.")
     }
     lr <- samp$log_ratio
   }
