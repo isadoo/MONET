@@ -16,9 +16,6 @@ F1 offspring measured in the common garden.}
 \source{
 Simulated data for package vignette demonstration
 }
-\usage{
-data(vignette_population_individual_id_df)
-}
 \description{
 A data frame mapping F1 individuals to their populations of origin.
 This dataset is used in the MONET package vignette to demonstrate

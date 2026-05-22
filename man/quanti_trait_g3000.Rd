@@ -15,9 +15,6 @@ A data file in FSTAT format containing:
 \source{
 Simulated QTL data with additive genetic effects
 }
-\usage{
-system.file("extdata", "quanti_trait_g3000.dat", package = "MONET")
-}
 \description{
 Bi-allelic genetic marker data for quantitative trait loci (QTL) from 180
 individuals across 18 populations. This dataset represents causal loci

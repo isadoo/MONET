@@ -5,6 +5,7 @@ Version: 0.1.0
 Authors@R: c(
     person("Isabela", "do O", email = "isabela.doo@unil.ch", role = c("aut", "cre")),
     person("Oscar E", "Gaggiotti", role = "aut"),
+    person("Marianne", "Bachmann Salvy", role = "aut"),
     person("Pierre", "de Villemereuil", role = "aut"),
     person("Jerome", "Goudet", role = "aut")
     )
@@ -20,6 +21,7 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     brms,
+    posterior,
     hierfstat,
     kinship2,
     dplyr,

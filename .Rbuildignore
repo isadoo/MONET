@@ -1,0 +1,9 @@
+^\.github$
+^vignettes/.*\.(aux|bbl|blg|log|out|toc|html)$
+^vignettes/VIGNETTE_UPDATE_SUMMARY\.md$
+^vignettes/.*\.code-workspace$
+^vignettes/test_monet_output\.R$
+^vignettes/tutorial_output\.txt$
+^vignettes/vignette_tutorial_output\.txt$
+^vignettes/vignette_tutorial\.r$
+^vignettes/figures$

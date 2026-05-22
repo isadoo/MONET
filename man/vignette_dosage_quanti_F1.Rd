@@ -15,9 +15,6 @@ A 900×100 numeric matrix where:
 \source{
 Generated from simulated crosses using parental QTL data
 }
-\usage{
-data(vignette_dosage_quanti_F1)
-}
 \description{
 Genetic marker data in dosage format for 900 F1 individuals at 100 quantitative
 trait loci (QTL). This dataset is used to simulate phenotypic trait values.

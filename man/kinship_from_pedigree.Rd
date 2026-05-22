@@ -31,6 +31,7 @@ Note: This function uses \code{kinship2::kinship()} internally and converts the 
 to a relatedness matrix by multiplying by 2.
 }
 \examples{
+\dontrun{
 # Create a simple pedigree
 pedigree <- data.frame(
   id = c("A", "B", "C", "D"),
@@ -40,7 +41,7 @@ pedigree <- data.frame(
 
 # Calculate kinship matrix
 kinship_matrix <- kinship_from_pedigree(pedigree)
-
+}
 }
 \references{
 Lynch, M., & Walsh, B. (1998). Genetics and analysis of quantitative traits.

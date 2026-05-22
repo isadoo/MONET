@@ -16,9 +16,6 @@ A 900×2000 numeric matrix where:
 \source{
 Generated from simulated crosses using parental neutral marker data
 }
-\usage{
-data(vignette_dos_F1only_neutral)
-}
 \description{
 Genetic marker data in dosage format for 900 F1 individuals at 2000 neutral loci.
 This dataset represents offspring genotypes from within-population crosses.

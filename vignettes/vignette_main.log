@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.11.11)  22 MAY 2026 14:56
+This is pdfTeX, Version 3.141592653-2.6-1.40.28 (TeX Live 2025) (preloaded format=pdflatex 2025.11.11)  22 MAY 2026 15:40
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -415,7 +415,8 @@ Package: float 2001/11/08 v1.3d Float enhancements (AL)
 ) (/users/ijeronim/.TinyTeX/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2025-10-09 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count324
-) (./vignette_main.aux)
+)
+No file vignette_main.aux.
 \openout1 = `vignette_main.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 33.
@@ -436,7 +437,6 @@ LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 33.
 LaTeX Font Info:    ... okay on input line 33.
 LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 33.
 LaTeX Font Info:    ... okay on input line 33.
-
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
 *geometry* verbose mode - [ preamble ] result:
@@ -478,7 +478,6 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
 Package hyperref Info: Link coloring OFF on input line 33.
- (./vignette_main.out) (./vignette_main.out)
 \@outlinefile=\write3
 \openout3 = `vignette_main.out'.
 
@@ -490,13 +489,18 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 LaTeX Font Info:    Trying to load font information for U+msb on input line 36.
  (/users/ijeronim/.TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
-) (./vignette_main.toc [1
+)
+Overfull \hbox (58.53136pt too wide) in paragraph at lines 36--36
+ [][] 
+ []
 
-{/users/ijeronim/.TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}])
+No file vignette_main.toc.
 \tf@toc=\write4
 \openout4 = `vignette_main.toc'.
 
- [2] (/users/ijeronim/.TinyTeX/texmf-dist/tex/latex/listings/lstlang1.sty
+[1
+
+{/users/ijeronim/.TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] (/users/ijeronim/.TinyTeX/texmf-dist/tex/latex/listings/lstlang1.sty
 File: lstlang1.sty 2025/10/06 1.11 listings language file
 ) (/users/ijeronim/.TinyTeX/texmf-dist/tex/latex/listings/lstlang2.sty
 File: lstlang2.sty 2025/10/06 1.11 listings language file
@@ -507,44 +511,72 @@ Overfull \hbox (13.32603pt too wide) in paragraph at lines 98--99
 []\OT1/cmr/bx/n/10.95 Calculate coances-tries\OT1/cmr/m/n/10.95 : Use the \OT1/cmtt/m/n/10.95 calculate[]coancestries() \OT1/cmr/m/n/10.95 func-tion to com-pute population-
  []
 
-[3] [4] [5] [6] [7]
-<trait_distribution_by_population.png, id=322, 803.0pt x 602.25pt>
+[2] [3] [4] [5]
+
+Package natbib Warning: Citation `danecek2011variant' on page 6 undefined on input line 271.
+
+
+Package natbib Warning: Citation `knaus2017vcfr' on page 6 undefined on input line 271.
+
+
+Package natbib Warning: Citation `weeks2010plink' on page 6 undefined on input line 271.
+
+
+Package natbib Warning: Citation `jones2010colony' on page 6 undefined on input line 276.
+
+
+Package natbib Warning: Citation `huisman2017pedigree' on page 6 undefined on input line 276.
+
+[6]
+
+LaTeX Warning: Reference `fig:trait' on page 7 undefined on input line 314.
+
+
+LaTeX Warning: Reference `fig:env' on page 7 undefined on input line 314.
+
+<trait_distribution_by_population.png, id=106, 803.0pt x 602.25pt>
 File: trait_distribution_by_population.png Graphic file (type png)
 <use trait_distribution_by_population.png>
 Package pdftex.def Info: trait_distribution_by_population.png  used on input line 321.
 (pdftex.def)             Requested size: 422.77664pt x 317.08656pt.
-<trait_vs_environment.png, id=323, 803.0pt x 602.25pt>
+<trait_vs_environment.png, id=107, 803.0pt x 602.25pt>
 File: trait_vs_environment.png Graphic file (type png)
 <use trait_vs_environment.png>
 Package pdftex.def Info: trait_vs_environment.png  used on input line 328.
 (pdftex.def)             Requested size: 422.77664pt x 317.08656pt.
- [8] [9
+[7] [8
 pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.345 #
-        Load F1 dosages <./trait_distribution_by_population.png (PNG copy)>] [10
+        Load F1 dosages <./trait_distribution_by_population.png (PNG copy)>] [9
 pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.345 #
-        Load F1 dosages <./trait_vs_environment.png (PNG copy)>] [11] [12] [13]
+        Load F1 dosages <./trait_vs_environment.png (PNG copy)>] [10] [11] [12]
 Overfull \hbox (41.87819pt too wide) in paragraph at lines 531--531
 []\OT1/cmtt/m/n/10.95 Chain 1: 1000 transitions using 10 leapfrog steps per transition would take 5.44 seconds.[] 
  []
 
-[14] [15]
-<posteriorplot.png, id=444, 803.0pt x 602.25pt>
+[13] [14]
+
+LaTeX Warning: Reference `fig:posterior' on page 15 undefined on input line 654.
+
+
+LaTeX Warning: Reference `fig:posterior' on page 15 undefined on input line 661.
+
+<posteriorplot.png, id=235, 803.0pt x 602.25pt>
 File: posteriorplot.png Graphic file (type png)
 <use posteriorplot.png>
 Package pdftex.def Info: posteriorplot.png  used on input line 665.
 (pdftex.def)             Requested size: 422.77664pt x 317.08656pt.
- [16] [17
+[15] [16
 pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.678 \item \texttt
-                   {formula\_used}: The model formula <./posteriorplot.png>] [18] [19] [20]
+                   {formula\_used}: The model formula <./posteriorplot.png>] [17] [18] [19]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 902.
@@ -569,7 +601,17 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 902.
 
-[21] [22]
+
+Package natbib Warning: Citation `spitze1993population' on page 20 undefined on input line 904.
+
+[20]
+
+Package natbib Warning: Citation `de2022common' on page 21 undefined on input line 915.
+
+
+Package natbib Warning: Citation `do2025method' on page 21 undefined on input line 915.
+
+[21]
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 986.
@@ -586,7 +628,16 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 986.
 
-<figures/heatmap_Theta_P_SS.jpg, id=618, 722.7pt x 722.7pt>
+
+Package natbib Warning: Citation `weir2017unified' on page 22 undefined on input line 992.
+
+
+Package natbib Warning: Citation `goudet2023allele' on page 22 undefined on input line 992.
+
+
+LaTeX Warning: Reference `fig:thetap' on page 22 undefined on input line 998.
+
+<figures/heatmap_Theta_P_SS.jpg, id=403, 722.7pt x 722.7pt>
 File: figures/heatmap_Theta_P_SS.jpg Graphic file (type jpg)
 <use figures/heatmap_Theta_P_SS.jpg>
 Package pdftex.def Info: figures/heatmap_Theta_P_SS.jpg  used on input line 1002.
@@ -599,18 +650,20 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1008.
 
-[23] [24
+[22] [23
 pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.1012 F
         or common garden designs with within-population crosses, $M$ is bloc... <./figures/heatmap_Theta_P_SS.jpg>]
-<heatmap_TheM_SS.jpg, id=633, 722.7pt x 722.7pt>
+
+LaTeX Warning: Reference `fig:M' on page 24 undefined on input line 1024.
+
+<heatmap_TheM_SS.jpg, id=418, 722.7pt x 722.7pt>
 File: heatmap_TheM_SS.jpg Graphic file (type jpg)
 <use heatmap_TheM_SS.jpg>
 Package pdftex.def Info: heatmap_TheM_SS.jpg  used on input line 1028.
 (pdftex.def)             Requested size: 375.80544pt x 375.80615pt.
-
 
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1038.
@@ -635,32 +688,50 @@ Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 Package hyperref Warning: Token not allowed in a PDF string (Unicode):
 (hyperref)                removing `math shift' on input line 1038.
 
-[25
+[24
 pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
 l.1041 
-        <./heatmap_TheM_SS.jpg>] (./vignette_main.bbl [26]) [27] (./vignette_main.aux)
+        <./heatmap_TheM_SS.jpg>]
+No file vignette_main.bbl.
+
+Package natbib Warning: There were undefined citations.
+
+[25] (./vignette_main.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2025-10-24>
  ***********
-Package rerunfilecheck Info: File `vignette_main.out' has not changed.
-(rerunfilecheck)             Checksum: 13DF649A96ECF8CCA0A479D868A0849F;7871.
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `vignette_main.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `vignette_main.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  13DF649A96ECF8CCA0A479D868A0849F;7871.
  ) 
 Here is how much of TeX's memory you used:
- 13226 strings out of 469519
- 196033 string characters out of 5469814
- 1035181 words of memory out of 5000000
- 41385 multiletter control sequences out of 15000+600000
- 639688 words of font info for 86 fonts, out of 8000000 for 9000
+ 13117 strings out of 469519
+ 193970 string characters out of 5469814
+ 1034062 words of memory out of 5000000
+ 41301 multiletter control sequences out of 15000+600000
+ 639342 words of font info for 85 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  75i,9n,79p,626b,2007s stack positions out of 10000i,1000n,20000p,200000b,200000s
- </users/ijeronim/.TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tctt1000.600pk> </users/ijeronim/.TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1095.600pk></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
-Output written on vignette_main.pdf (27 pages, 1070062 bytes).
+ </users/ijeronim/.TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tctt1000.600pk> </users/ijeronim/.TinyTeX/texmf-var/fonts/pk/ljfour/jknappen/ec/tcrm1095.600pk></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></users/ijeronim/.TinyTeX/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb>
+Output written on vignette_main.pdf (25 pages, 1045592 bytes).
 PDF statistics:
- 803 PDF objects out of 1000 (max. 8388607)
- 726 compressed objects within 8 object streams
- 337 named destinations out of 1000 (max. 500000)
- 362 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 578 PDF objects out of 1000 (max. 8388607)
+ 507 compressed objects within 6 object streams
+ 324 named destinations out of 1000 (max. 500000)
+ 26 words of extra memory for PDF output out of 10000 (max. 10000000)
 

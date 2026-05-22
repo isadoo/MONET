@@ -4,10 +4,10 @@
 \alias{calculate_coancestries}
 \title{Calculate coancestries}
 \usage{
-calculate_coancestries(genetic_data_parents, genotyped_parent_populations, 
-  genetic_data_F1 = NA, population_individual_id = NA, 
-  column_individual = "id", column_population = "population_id", 
-  pedigree = NA, all_parents_genotyped = FALSE)
+calculate_coancestries(genetic_data_parents, genotyped_parent_populations,
+  genetic_data_F1 = NA, population_individual_id = NA,
+  column_individual = "id", column_population = "population_id",
+  pedigree = NA, all_parents_genotyped = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{genetic_data_parents}{A data frame or file name containing genetic data for the parental generation. Must be dosage format.}
@@ -27,6 +27,8 @@ If not provided, a balanced design is assumed.}
 individual ID, dam ID, and sire ID.}
 
 \item{all_parents_genotyped}{Logical; if TRUE, indicates that the genotyped individuals in "genotyped_parent_populations" are the parents of F1 individuals}
+
+\item{verbose}{Logical; if TRUE (default), prints informational messages during calculation. If FALSE, suppresses output.}
 }
 \value{
 A list containing:

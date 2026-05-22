@@ -143,7 +143,7 @@ monet <- function(Theta.P,
   integer_like <- all(abs(Y - round(Y)) < 1e-8)
     # Validate population column against Theta.P rownames (if population column exists in dataframe)
   if (column_population %in% names(trait_dataframe)) {
-    pops_in_data <- unique(na.omit(trait_dataframe[[column_population]]))
+    pops_in_data <- unique(stats::na.omit(trait_dataframe[[column_population]]))
     pops_in_theta <- rownames(Theta.P)
 
     missing_pops <- setdiff(pops_in_data, pops_in_theta)
@@ -309,7 +309,7 @@ monet <- function(Theta.P,
   if (have_se) {
     # Use measurement error on the response; still estimate residual sigma
     formula_string <- paste0("Y | se(Y_se, sigma = TRUE) ~ 1 + ", rhs)
-    model_formula <- brms::bf(as.formula(formula_string))
+    model_formula <- brms::bf(stats::as.formula(formula_string))
     if (do_standardize) {
       cat("Measurement SE column: ", column_se, " (scaled to standardized Y)\n", sep = "")
     } else {
@@ -317,14 +317,14 @@ monet <- function(Theta.P,
     }
   } else {
     formula_string <- paste0("Y ~ 1 + ", rhs)
-    model_formula <- as.formula(formula_string)
+    model_formula <- stats::as.formula(formula_string)
   }
   
   cat("Using formula:", formula_string, "\n")
   
   #Diagnostics
   n_total <- nrow(dat)
-  n_complete <- sum(complete.cases(dat))
+  n_complete <- sum(stats::complete.cases(dat))
   cat("Total rows:", n_total, " ; complete rows used:", n_complete, "\n")
   
   #check for NAs
@@ -374,7 +374,7 @@ monet <- function(Theta.P,
   threshold_1pct <- 0.01 * post_warmup_transitions
   sampler_params <- brms::nuts_params(brms_mf)
   # get divergent transitions and check if its under 1%
-  n_divergent    <- sum(subset(sampler_params, Parameter == "divergent__")$Value)
+  n_divergent    <- sum(sampler_params[sampler_params$Parameter == "divergent__", "Value"])
   if (n_divergent > 0) {
     warning(paste("Model had", n_divergent, "divergent transitions after warmup"))
   }

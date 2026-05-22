@@ -1,0 +1,14 @@
+---
+title: "MONET: Model of Neutral Evolution of Traits"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{MONET Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+The full MONET tutorial is available as a PDF (`vignette_main.pdf`) in the
+`vignettes/` folder of the package source and on the
+[GitHub repository](https://github.com/isadoo/MONET).
+
+For a quick start, see the README at the repository root.

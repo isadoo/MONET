@@ -4,9 +4,10 @@
 \alias{monet}
 \title{monet: Log ratios of ancestral variances}
 \usage{
-monet(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
-            column_population = "population", column_se = NULL, formula_covariates = NULL, 
-            iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE, ...)
+monet(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait",
+            column_population = "population", column_se = NULL, formula_covariates = NULL,
+            iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE,
+            standardize_trait = NULL, ...)
 }
 \arguments{
 \item{Theta.P}{A square matrix representing the coancestry matrix between populations.}
@@ -36,6 +37,10 @@ For example, "age + sex" would add age and sex as fixed effects. Default is NULL
 
 \item{save_full_model}{Logical. If TRUE, saves the full brms model object in the results.
 If FALSE (default), only minimal posterior samples (fixed effects, variance components, and log-ratio) are retained to save memory.}
+
+\item{standardize_trait}{Logical or NULL. Controls z-score standardization of the response trait.
+If NULL (default), standardization is applied automatically when the trait range exceeds 10 units.
+Set to TRUE to force standardization or FALSE to skip it.}
 
 \item{...}{Additional arguments passed to the brms function.}
 }

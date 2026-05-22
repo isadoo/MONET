@@ -14,9 +14,6 @@ A 18x18 numeric matrix where:
 \source{
 Calculated from simulated neutral marker data using hierfstat::fs.dosage()
 }
-\usage{
-data(vignette_Theta_P)
-}
 \description{
 A symmetric matrix containing between-population coancestry coefficients.
 This matrix describes the mean relatedness between pairs of individuals

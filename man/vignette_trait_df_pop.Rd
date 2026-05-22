@@ -20,9 +20,6 @@ source population for each individual.}
 \source{
 Simulated data for package vignette demonstration
 }
-\usage{
-data(vignette_trait_df_pop)
-}
 \description{
 A data frame containing standardized trait measurements for F1 individuals
 from 18 populations. This neutral trait dataset is used in the MONET package

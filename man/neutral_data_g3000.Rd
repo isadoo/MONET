@@ -15,9 +15,6 @@ A data file in FSTAT format containing:
 \source{
 Simulated neutral marker data
 }
-\usage{
-system.file("extdata", "neutral_data_g3000.dat", package = "MONET")
-}
 \description{
 Neutral bi-allelic genetic marker data for 180 individuals from 18 populations
 (10 individuals per population). This dataset represents the parental generation

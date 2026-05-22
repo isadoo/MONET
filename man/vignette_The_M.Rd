@@ -16,9 +16,6 @@ from the same population}
 \source{
 Calculated from simulated F1 neutral marker data using hierfstat::beta.dosage()
 }
-\usage{
-data(vignette_The_M)
-}
 \description{
 A symmetric block-diagonal matrix containing within-population relatedness
 coefficients for F1 individuals. This matrix describes the kinship between
