@@ -36,7 +36,7 @@ where error ~ N(0, 1), and the trait was then standardized.
 \dontrun{
 # Load the data
 dos_quanti_F1 <- readRDS(
-  system.file("extdata", "vignette_dosage_quanti_F1.rds", package = "LAVA")
+  system.file("extdata", "vignette_dosage_quanti_F1.rds", package = "MONET")
 )
 
 # Check dimensions

@@ -1,9 +1,9 @@
-#' @title lava: Log ratios of ancestral variances
+#' @title monet: Log ratios of ancestral variances
 #'
 #' @description Given coancestry matrices for between and within populations and a trait data frame, 
 #' this function estimates the log ratio of ancestral variances using a Bayesian mixed-effects model.
 #' 
-#' @usage lava(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
+#' @usage monet(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
 #'             column_population = "population", column_se = NULL, formula_covariates = NULL, 
 #'             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE,
 #'             standardize_trait = NULL, ...)
@@ -43,7 +43,7 @@
 #' 
 #' @param ... Additional arguments passed to the brms function.
 #'
-#' @return A lava type object containing:
+#' @return A monet type object containing:
 #' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (V_AB, V_AW), and log_ratio.}
 #' \item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds).}
 #' \item{covariate_p_values}{Named numeric vector with two-tailed posterior sign-probability p-values for fixed-effect covariates (excluding intercept). NULL when no covariates are present.}
@@ -64,7 +64,7 @@
 #' - do O et al (2025)
 #'
 #' @export
-lava <- function(Theta.P, 
+monet <- function(Theta.P, 
                  M, 
                  trait_dataframe, 
                  column_individual = "id", 
@@ -458,12 +458,12 @@ if (length(have_sd) == 2) {
     max_rhat = max(rhats, na.rm = TRUE)
   )
 )
-class(results) <- "lava"
+class(results) <- "monet"
 return(results)
 }
 #' @export
-print.lava <- function(x, ...) {
-  cat("\n---- LAVA Analysis Results ----\n\n")
+print.monet <- function(x, ...) {
+  cat("\n---- MONET Analysis Results ----\n\n")
   cat("Trait analyzed:", x$trait_name, "\n")
   cat("Formula used:", x$formula_used, "\n\n")
   
@@ -490,8 +490,8 @@ print.lava <- function(x, ...) {
 }
 
 #' @export
-summary.lava <- function(object, ...) {
-  cat("\n---- LAVA Summary ----\n\n")
+summary.monet <- function(object, ...) {
+  cat("\n---- MONET Summary ----\n\n")
   cat(sprintf("Trait: %s\n\n", object$trait_name))
   
   cat("Log-Ratio of Ancestral Variances (log(VB/VA)):\n")
@@ -516,7 +516,7 @@ summary.lava <- function(object, ...) {
 }
 
 #' @export
-plot.lava <- function(x, ...) {
+plot.monet <- function(x, ...) {
   # Accept either a brmsfit (full model) or a draws data.frame in x$sampling
   if (inherits(x$sampling, "brmsfit")) {
     # compute log_ratio from the model draws

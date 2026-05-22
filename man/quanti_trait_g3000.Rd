@@ -16,7 +16,7 @@ A data file in FSTAT format containing:
 Simulated QTL data with additive genetic effects
 }
 \usage{
-system.file("extdata", "quanti_trait_g3000.dat", package = "LAVA")
+system.file("extdata", "quanti_trait_g3000.dat", package = "MONET")
 }
 \description{
 Bi-allelic genetic marker data for quantitative trait loci (QTL) from 180
@@ -42,7 +42,7 @@ These markers can be used to:
 \dontrun{
 # Read the data
 quanti_file <- system.file("extdata", "quanti_trait_g3000.dat", 
-                           package = "LAVA")
+                           package = "MONET")
 sim_quanti <- hierfstat::read.fstat(fname = quanti_file)
 
 # Convert to dosage format

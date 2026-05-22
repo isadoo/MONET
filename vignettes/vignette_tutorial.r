@@ -1,8 +1,8 @@
-# Script to generate example data for the LAVA package vignette tutorial
+# Script to generate example data for the MONET package vignette tutorial
 # This script creates all the data files that will be included in inst/extdata/
 # and demonstrates the workflow that users will follow in the vignette
 
-# Load dependencies first (before loading LAVA package)
+# Load dependencies first (before loading MONET package)
 library(hierfstat)
 library(brms)
 library(gaston)
@@ -14,14 +14,14 @@ if (!requireNamespace("JGTeach", quietly = TRUE)) {
 }
 library(JGTeach)
 
-# Now load LAVA package (this should not reload brms since it's already loaded)
-devtools::load_all("/home/isa/github_repositories/LAVA")
+# Now load MONET package (this should not reload brms since it's already loaded)
+devtools::load_all("/home/isa/github_repositories/MONET")
 
-source("/home/isa/github_repositories/LAVA/R/create_F1.r")
+source("/home/isa/github_repositories/MONET/R/create_F1.r")
 
 
 cat("================================================================\n")
-cat("LAVA VIGNETTE DATA GENERATION AND TUTORIAL SCRIPT\n")
+cat("MONET VIGNETTE DATA GENERATION AND TUTORIAL SCRIPT\n")
 cat("================================================================\n\n")
 
 # ============================================================
@@ -31,7 +31,7 @@ cat("PART 1: Generating example data for package...\n")
 cat("----------------------------------------------------------------\n\n")
 
 # Load source data files
-lava_extdata <- system.file("extdata", package = "LAVA")
+lava_extdata <- system.file("extdata", package = "MONET")
 
 neutral_file <- file.path(lava_extdata, "neutral_data_g3000.dat")
 quanti_file <- file.path(lava_extdata, "quanti_trait_g3000.dat")
@@ -109,7 +109,7 @@ population <- rep(pop_F1, NTraits)
 trait_df_pop <- data.frame(individual, trait, population)
 
 # Save all data files to inst/extdata
-save_path <- file.path("/home/isa/github_repositories/LAVA/inst/extdata")
+save_path <- file.path("/home/isa/github_repositories/MONET/inst/extdata")
 
 
 write.csv(population_individual_id_df, 
@@ -148,20 +148,20 @@ cat("================================================================\n")
 cat("PART 2: VIGNETTE TUTORIAL WORKFLOW\n")
 cat("================================================================\n\n")
 
-# Load LAVA (assumes package is already loaded from Part 1, or use library(LAVA) if installed)
-cat("LAVA package loaded\n\n")
+# Load MONET (assumes package is already loaded from Part 1, or use library(MONET) if installed)
+cat("MONET package loaded\n\n")
 
 cat("Step 1: Load genetic data (dosage format)\n")
 cat("------------------------------------------------------\n")
 
 #Load parental dosages  ##########################
 dos_P_neutral <- readRDS(
-  system.file("extdata", "vignette_dos_parental_neutral.rds", package = "LAVA")
+  system.file("extdata", "vignette_dos_parental_neutral.rds", package = "MONET")
 )
 
 # Load F1 dosages ##########################
 dos_F1only_neutral <- readRDS(
-  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "LAVA")
+  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "MONET")
 )
 
 ###############################################
@@ -179,17 +179,17 @@ cat("Step 2: Load trait data and visualize trait distribution\n")
 cat("------------------------------------------------------\n")
 
 trait_df_pop <- read.csv(
-  system.file("extdata", "vignette_trait_df_pop.csv", package = "LAVA")
+  system.file("extdata", "vignette_trait_df_pop.csv", package = "MONET")
 )
 
 #Load population to individual identification dataframe (This is just the F1s)
 population_individual_id <- read.csv(
-  system.file("extdata", "vignette_population_individual_id_df.csv", package = "LAVA")
+  system.file("extdata", "vignette_population_individual_id_df.csv", package = "MONET")
 )
 
 #write a vector of pop ids for genotyped parents
 pop_id <- readRDS(
-  system.file("extdata", "vignette_pop_id.rds", package = "LAVA")
+  system.file("extdata", "vignette_pop_id.rds", package = "MONET")
 )
 
 cat("Trait data (first 6 rows):\n")
@@ -207,7 +207,7 @@ n_pops <- length(unique_pops)
 colors <- rainbow(n_pops)
 
 # Save plot as PNG
-png("/home/isa/github_repositories/LAVA/vignettes/trait_distribution_by_population.png", 
+png("/home/isa/github_repositories/MONET/vignettes/trait_distribution_by_population.png", 
     width = 800, height = 600)
 plot(trait_df_pop$individual, trait_df_pop$trait,
      col = colors[as.factor(trait_df_pop$population)],
@@ -240,10 +240,10 @@ M <- coancestries_dosage$M
 #Or directly load pre-calculated matrices
 
 Theta.P <- readRDS(
-   system.file("extdata", "vignette_Theta_P.rds", package = "LAVA")
+   system.file("extdata", "vignette_Theta_P.rds", package = "MONET")
  )
 M <- readRDS(
-   system.file("extdata", "vignette_M.rds", package = "LAVA")
+   system.file("extdata", "vignette_M.rds", package = "MONET")
  ) 
 
 cat("\nCoancestry matrices calculated:\n")
@@ -252,10 +252,10 @@ cat("  M dimensions:", dim(M), "\n\n")
 
 cat("Matrices saved to inst/extdata\n\n")
 
-cat("Step 4: Run LAVA analysis\n")
+cat("Step 4: Run MONET analysis\n")
 cat("------------------------------------------------------\n")
 
-results <- lava(
+results <- monet(
   Theta.P = Theta.P,
   M = M,
   trait_dataframe = trait_df_pop,
@@ -269,7 +269,7 @@ results <- lava(
 
 cat("\n")
 cat("================================================================\n")
-cat("LAVA ANALYSIS RESULTS\n")
+cat("MONET ANALYSIS RESULTS\n")
 cat("================================================================\n\n")
 
 # View concise summary
@@ -284,20 +284,20 @@ cat("First 6 rows of posterior samples:\n")
 print(head(results$sampling))
 
 cat("\n--- Visualize posterior distribution ---\n")
-png("/home/isa/github_repositories/LAVA/vignettes/posteriorplot.png", width = 800, height = 600)
+png("/home/isa/github_repositories/MONET/vignettes/posteriorplot.png", width = 800, height = 600)
 plot(results)
 dev.off()
 
 
-saveRDS(results, file.path(save_path, "vignette_lava_results.rds"))
-cat("\nResults saved to inst/extdata/vignette_lava_results.rds\n")
+saveRDS(results, file.path(save_path, "vignette_monet_results.rds"))
+cat("\nResults saved to inst/extdata/vignette_monet_results.rds\n")
 
-cat("Step 5: Load environmental data and run LAVA with environment\n")
+cat("Step 5: Load environmental data and run MONET with environment\n")
 cat("------------------------------------------------------\n")
 
 
 trait_df_pop_env <- read.csv(
-  system.file("extdata", "vignette_environment_df.csv", package = "LAVA")
+  system.file("extdata", "vignette_environment_df.csv", package = "MONET")
 )
 
 cat("Trait data with environment (first 6 rows):\n")
@@ -311,7 +311,7 @@ cat("\n")
 
 # Visualize trait vs environment
 cat("Creating trait vs environment plot...\n")
-png("/home/isa/github_repositories/LAVA/vignettes/trait_vs_environment.png", 
+png("/home/isa/github_repositories/MONET/vignettes/trait_vs_environment.png", 
     width = 800, height = 600)
 plot(trait_df_pop_env$environment, trait_df_pop_env$trait,
      col = colors[as.factor(trait_df_pop_env$population)],
@@ -323,10 +323,10 @@ legend("bottomright", legend = paste("Pop", unique_pops),
 dev.off()
 cat("Plot saved to vignettes/trait_vs_environment.png\n\n")
 
-# Run LAVA with environment
-cat("Running LAVA analysis with environmental covariate\n")
+# Run MONET with environment
+cat("Running MONET analysis with environmental covariate\n")
 
-results_env <- lava(
+results_env <- monet(
   Theta.P = Theta.P,
   M = M,
   trait_dataframe = trait_df_pop_env,
@@ -341,7 +341,7 @@ results_env <- lava(
 
 cat("\n")
 cat("================================================================\n")
-cat("LAVA ANALYSIS RESULTS WITH ENVIRONMENT\n")
+cat("MONET ANALYSIS RESULTS WITH ENVIRONMENT\n")
 cat("================================================================\n\n")
 
 cat("Concise summary:\n")
@@ -355,10 +355,10 @@ cat("First 6 rows of posterior samples:\n")
 print(head(results_env$sampling))
 
 cat("\n--- Visualize posterior distribution ---\n")
-png("/home/isa/github_repositories/LAVA/vignettes/posteriorplot_with_environment.png", 
+png("/home/isa/github_repositories/MONET/vignettes/posteriorplot_with_environment.png", 
     width = 800, height = 600)
 plot(results_env)
 dev.off()
 
-saveRDS(results_env, file.path(save_path, "vignette_lava_results_env.rds"))
-cat("\nResults saved to inst/extdata/vignette_lava_results_env.rds\n")
+saveRDS(results_env, file.path(save_path, "vignette_monet_results_env.rds"))
+cat("\nResults saved to inst/extdata/vignette_monet_results_env.rds\n")

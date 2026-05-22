@@ -16,7 +16,7 @@ A data file in FSTAT format containing:
 Simulated neutral marker data
 }
 \usage{
-system.file("extdata", "neutral_data_g3000.dat", package = "LAVA")
+system.file("extdata", "neutral_data_g3000.dat", package = "MONET")
 }
 \description{
 Neutral bi-allelic genetic marker data for 180 individuals from 18 populations
@@ -41,7 +41,7 @@ The file structure:
 \dontrun{
 # Read the data
 neutral_file <- system.file("extdata", "neutral_data_g3000.dat", 
-                            package = "LAVA")
+                            package = "MONET")
 sim <- hierfstat::read.fstat(fname = neutral_file)
 
 # Convert to dosage format

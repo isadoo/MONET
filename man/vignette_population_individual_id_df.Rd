@@ -21,7 +21,7 @@ data(vignette_population_individual_id_df)
 }
 \description{
 A data frame mapping F1 individuals to their populations of origin.
-This dataset is used in the LAVA package vignette to demonstrate
+This dataset is used in the MONET package vignette to demonstrate
 how to organize population structure information for analysis.
 }
 \details{
@@ -36,7 +36,7 @@ standardized conditions.
 # Load the data
 pop_ind_df <- read.csv(
   system.file("extdata", "vignette_population_individual_id_df.csv", 
-              package = "LAVA")
+              package = "MONET")
 )
 
 # Check population sizes

@@ -1,14 +1,14 @@
-# Script to test LAVA output with vignette example data
+# Script to test MONET output with vignette example data
 # This will help update the vignette with the current output format
 
-library(LAVA)
+library(MONET)
 
 # Load the example data from inst/extdata
 cat("Loading example data from inst/extdata...\n")
 
 # Load trait data
 trait_df_pop <- read.csv(
-  system.file("extdata", "vignette_trait_df_pop.csv", package = "LAVA")
+  system.file("extdata", "vignette_trait_df_pop.csv", package = "MONET")
 )
 
 cat("Trait data loaded:", nrow(trait_df_pop), "individuals\n")
@@ -16,7 +16,7 @@ head(trait_df_pop)
 
 # Load population-individual mapping
 population_individual_id_df <- read.csv(
-  system.file("extdata", "vignette_population_individual_id_df.csv", package = "LAVA")
+  system.file("extdata", "vignette_population_individual_id_df.csv", package = "MONET")
 )
 
 cat("\nPopulation-individual mapping loaded\n")
@@ -24,14 +24,14 @@ head(population_individual_id_df)
 
 # Load F1 neutral dosages
 dos_F1only_neutral <- readRDS(
-  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "LAVA")
+  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "MONET")
 )
 
 cat("\nF1 neutral dosages loaded:", dim(dos_F1only_neutral), "\n")
 
 # Load parent neutral data using hierfstat
 cat("\nLoading parent neutral data...\n")
-neutral_file <- system.file("extdata", "neutral_data_g3000.dat", package = "LAVA")
+neutral_file <- system.file("extdata", "neutral_data_g3000.dat", package = "MONET")
 
 if (file.exists(neutral_file)) {
   sim <- hierfstat::read.fstat(fname = neutral_file)
@@ -68,12 +68,12 @@ if (file.exists(neutral_file)) {
   M <- diag(nrow(trait_df_pop))
 }
 
-# Run LAVA
+# Run MONET
 cat("\n" , rep("=", 60), "\n", sep = "")
-cat("Running LAVA analysis...\n")
+cat("Running MONET analysis...\n")
 cat(rep("=", 60), "\n\n", sep = "")
 
-results <- lava(
+results <- monet(
   Theta.P = Theta.P, 
   M = M, 
   trait_dataframe = trait_df_pop, 
@@ -84,7 +84,7 @@ results <- lava(
 
 # Print results
 cat("\n" , rep("=", 60), "\n", sep = "")
-cat("LAVA RESULTS\n")
+cat("MONET RESULTS\n")
 cat(rep("=", 60), "\n\n", sep = "")
 
 print(results)

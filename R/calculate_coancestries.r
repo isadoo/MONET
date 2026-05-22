@@ -61,7 +61,7 @@ calculate_coancestries <- function(genetic_data_parents,
 
     # Load F1 data and get kinship ------------------------------------------------------ 
     if (!identical(pedigree, NA)) {
-        kinship_F1 <- kinship_from_pedigree(pedigree) #internal function from package LAVA
+        kinship_F1 <- kinship_from_pedigree(pedigree) #internal function from package MONET
         #Make sure individuals are arranged by their naming, which ideally follows the population naming
         #sorted_F1_names <- sort(rownames(kinship_F1))
         #kinship_F1 <- kinship_F1[sorted_F1_names, sorted_F1_names]

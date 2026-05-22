@@ -25,23 +25,23 @@ data(vignette_trait_df_pop)
 }
 \description{
 A data frame containing standardized trait measurements for F1 individuals
-from 18 populations. This neutral trait dataset is used in the LAVA package
+from 18 populations. This neutral trait dataset is used in the MONET package
 vignette to demonstrate testing for local adaptation.
 }
 \details{
 This dataset represents a quantitative trait measured on F1 offspring raised
 in a common garden. The trait is simulated to represent neutral divergence
-(i.e., no local adaptation) and is used to demonstrate the LAVA method's
+(i.e., no local adaptation) and is used to demonstrate the MONET method's
 behavior under the null hypothesis.
 
 The trait values are standardized for analysis, which is a requirement for
-the lava() function.
+the monet() function.
 }
 \examples{
 \dontrun{
 # Load the data
 trait_df <- read.csv(
-  system.file("extdata", "vignette_trait_df_pop.csv", package = "LAVA")
+  system.file("extdata", "vignette_trait_df_pop.csv", package = "MONET")
 )
 
 # Summary statistics

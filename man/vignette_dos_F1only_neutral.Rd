@@ -36,7 +36,7 @@ the M matrix (within-population relatedness).
 \dontrun{
 # Load the data
 dos_F1 <- readRDS(
-  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "LAVA")
+  system.file("extdata", "vignette_dos_F1only_neutral.rds", package = "MONET")
 )
 
 # Check dimensions

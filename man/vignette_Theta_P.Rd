@@ -27,7 +27,7 @@ The Theta.P matrix is calculated using the allele-sharing method of moments
 from neutral genetic markers. It represents the probability of identity-by-descent
 (IBD) between random alleles from different populations.
 
-This matrix is used as input to the lava() function to model between-population
+This matrix is used as input to the monet() function to model between-population
 genetic structure. Higher values indicate greater genetic similarity between
 populations.
 
@@ -38,7 +38,7 @@ ranging from 0 to 1.
 \dontrun{
 # Load the data
 Theta.P <- readRDS(
-  system.file("extdata", "vignette_Theta_P.rds", package = "LAVA")
+  system.file("extdata", "vignette_Theta_P.rds", package = "MONET")
 )
 
 # Check dimensions

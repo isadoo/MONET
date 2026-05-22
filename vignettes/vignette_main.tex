@@ -25,7 +25,7 @@
   numberstyle=\tiny\color{gray}
 }
 
-\title{\textbf{LAVA: Log ratios of Ancestral Variances} \\
+\title{\textbf{MONET: Log ratios of Ancestral Variances} \\
        \large A Method for Identifying Local Adaptation in Structured Populations}
 \author{Isabela do O, Oscar E Gaggiotti, Pierre de Villemereuil, Jerome Goudet}
 \date{\today}
@@ -37,9 +37,9 @@
 \begin{abstract}
 Distinguishing adaptive divergence from neutral processes in structured populations is a fundamental challenge in evolutionary biology. Traditional methods like $Q_{ST}$-$F_{ST}$ comparisons assume equal relatedness among all subpopulations—an assumption that is often violated in natural metapopulations. When this assumption is broken, these methods can produce inflated false positive rates.
 
-The LAVA package implements the LogAV method, which addresses this limitation by explicitly modeling population structure through coancestry matrices. The method compares two estimates of ancestral additive genetic variance derived from different levels of the demographic history. Under neutrality, these estimates should be equal; deviations indicate selection. LAVA maintains proper statistical calibration across diverse population structures while achieving comparable or superior power to existing methods.
+The MONET package implements the LogAV method, which addresses this limitation by explicitly modeling population structure through coancestry matrices. The method compares two estimates of ancestral additive genetic variance derived from different levels of the demographic history. Under neutrality, these estimates should be equal; deviations indicate selection. MONET maintains proper statistical calibration across diverse population structures while achieving comparable or superior power to existing methods.
 
-This vignette provides a practical guide to using LAVA, from installation through analysis and interpretation. We demonstrate the workflow with a complete tutorial using simulated data, explain how to prepare your own data, and provide guidance on advanced usage and troubleshooting.
+This vignette provides a practical guide to using MONET, from installation through analysis and interpretation. We demonstrate the workflow with a complete tutorial using simulated data, explain how to prepare your own data, and provide guidance on advanced usage and troubleshooting.
 \end{abstract}
 
 \tableofcontents
@@ -49,31 +49,31 @@ This vignette provides a practical guide to using LAVA, from installation throug
 
 \subsection{Installation from GitHub}
 
-LAVA is available on GitHub. Install it using the \texttt{devtools} package:
+MONET is available on GitHub. Install it using the \texttt{devtools} package:
 
 \lstset{style=Rstyle}
 \begin{lstlisting}
 # Install devtools if you don't have it
 if (!require("devtools")) install.packages("devtools")
 
-# Install LAVA from GitHub
-devtools::install_github("isadoo/LAVA")
+# Install MONET from GitHub
+devtools::install_github("isadoo/MONET")
 \end{lstlisting}
 
 \subsection{Loading the Package}
 
-Once installed, load LAVA into your R session:
+Once installed, load MONET into your R session:
 
 \begin{lstlisting}
-library(LAVA)
+library(MONET)
 \end{lstlisting}
 
 \subsection{Dependencies}
 
-LAVA automatically installs and uses several key dependencies:
+MONET automatically installs and uses several key dependencies:
 
 \begin{itemize}
-\item \textbf{brms}: For Bayesian linear mixed-effects modeling. LAVA uses \texttt{brms} to fit the statistical model and estimate ancestral variances through Bayesian inference.
+\item \textbf{brms}: For Bayesian linear mixed-effects modeling. MONET uses \texttt{brms} to fit the statistical model and estimate ancestral variances through Bayesian inference.
 
 \item \textbf{hierfstat}: For calculating coancestry matrices and population genetic statistics using the allele-sharing method of moments.
 
@@ -90,21 +90,21 @@ Note that \texttt{brms} requires a working Stan installation. If you encounter i
 
 \section{Quick Overview}
 
-\subsection{The LAVA Workflow}
+\subsection{The MONET Workflow}
 
-LAVA follows a three-step workflow:
+MONET follows a three-step workflow:
 
 \begin{enumerate}
 \item \textbf{Calculate coancestries}: Use the \texttt{calculate\_coancestries()} function to compute population-level ($\mathbf{\Theta_P}$) and individual-level ($\mathbf{M}$) coancestry matrices from genetic data.
 
-\item \textbf{Run the analysis}: Use the \texttt{lava()} function to fit a Bayesian mixed-effects model to your trait data, accounting for population structure.
+\item \textbf{Run the analysis}: Use the \texttt{monet()} function to fit a Bayesian mixed-effects model to your trait data, accounting for population structure.
 
 \item \textbf{Interpret results}: Examine the log-ratio of ancestral variances and its associated p-value to assess evidence for local or global adaptation.
 \end{enumerate}
 
 \subsection{The Core Statistical Test}
 
-LAVA tests for local adaptation by comparing two estimates of the ancestral additive genetic variance ($V_\mathcal{A}$):
+MONET tests for local adaptation by comparing two estimates of the ancestral additive genetic variance ($V_\mathcal{A}$):
 
 \begin{itemize}
 \item $\hat{V}_{A,B}$: estimated from between-population divergence
@@ -126,7 +126,7 @@ Under neutrality, $E[\text{LogAV}] = 0$.
 
 \subsection{Statistical Inference}
 
-LAVA uses Bayesian inference to compute the log-ratio. From the posterior distributions of $V_{ \mathcal{A},B}$ and $V_{ \mathcal{A},W}$, we calculate the log-ratio for each posterior sample. The Bayesian p-value is computed as:
+MONET uses Bayesian inference to compute the log-ratio. From the posterior distributions of $V_{ \mathcal{A},B}$ and $V_{ \mathcal{A},W}$, we calculate the log-ratio for each posterior sample. The Bayesian p-value is computed as:
 
 $$p = 2 \times \min \left( \frac{\#(\text{LogAV} > \text{median})}{N}, \frac{\#(\text{LogAV} < \text{median})}{N} \right)$$
 
@@ -135,9 +135,9 @@ where $N$ is the number of posterior samples, this p-value quantifies the propor
 A small p-value (typically $p < 0.05$) provides evidence against neutrality and supports the presence of selection.
 
 \subsection{Testing Environmental Correlations}
-LAVA can also test whether trait values are linearly associated with environmental differences across populations. For that, environmental covariates should be included in the model (via the  \lstinline{formula_covariates} parameter). This test uses the coefficient $\beta$ from the fixed effects in the model.
+MONET can also test whether trait values are linearly associated with environmental differences across populations. For that, environmental covariates should be included in the model (via the  \lstinline{formula_covariates} parameter). This test uses the coefficient $\beta$ from the fixed effects in the model.
 
-For each environmental variable j, LAVA computes a Bayesian p-value:
+For each environmental variable j, MONET computes a Bayesian p-value:
 \begin{equation}
     p_j = 2 \times \min\left(\frac{\#(\beta_j > 0)}{N}, \frac{\#(\beta_j < 0)}{N}\right)
 \label{eq:pval_beta}
@@ -151,7 +151,7 @@ Both tests (LogAV and the environmental coefficient) can be significant simultan
 
 \subsection{Data Requirements}
 
-To use LAVA, you need:
+To use MONET, you need:
 
 \begin{enumerate}
 \item \textbf{Phenotypic data from a common garden}: Quantitative trait measurements from offspring (F1 generation) reared in a controlled environment to minimize phenotypic plasticity.
@@ -295,15 +295,15 @@ Including environmental covariates in your analysis can substantially increase s
 
 Traditional approaches to studying local adaptation follow a two-step process: First testing for patterns of non-neutral divergence (for example through $Q_{ST}$ -- $F_{ST}$), and then through a separate analysis, regress population trait means against environmental variables. However, this this approach does not leverage environmental information in the test for divergence, and the regression does not account fo the non-independence between subpopulations. 
 
-LAVA uses a mixed-effect framework which allows to address both steps simultaneously. It does so by incorporating environmental covariates directly into the model which is accounting for the population structure. In our benchmarking we observed substantial power gains when including environmental information (See paper \textcolor{red}{[how do we refer to it?]}). Importantly, these power gains do not inflate false positive rates. 
+MONET uses a mixed-effect framework which allows to address both steps simultaneously. It does so by incorporating environmental covariates directly into the model which is accounting for the population structure. In our benchmarking we observed substantial power gains when including environmental information (See paper \textcolor{red}{[how do we refer to it?]}). Importantly, these power gains do not inflate false positive rates. 
 
-When environmental covariates are included, LAVA provides two complementary pieces of information: LogAV test which describes potential evidence for selection and the environmental coefficients which describes the direction and strength of the association between trait and environmental variation.
+When environmental covariates are included, MONET provides two complementary pieces of information: LogAV test which describes potential evidence for selection and the environmental coefficients which describes the direction and strength of the association between trait and environmental variation.
 
 \section{Tutorial with Example Data}
 
 \subsection{Overview of the Example Dataset}
 
-This tutorial uses a simulated dataset designed to demonstrate LAVA's workflow.
+This tutorial uses a simulated dataset designed to demonstrate MONET's workflow.
 \begin{itemize}
 \item \textbf{Population structure}: 18 populations arranged in a stepping-stone configuration, where gene flow only occurs between adjacent populations
 \item \textbf{Sample sizes}: 
@@ -332,20 +332,20 @@ This tutorial uses a simulated dataset designed to demonstrate LAVA's workflow.
 
 \subsection{Loading Tutorial Data}
 
-The tutorial data is included with the LAVA package and can be loaded directly from the package installation. We will load genetic data for both the parental and F1 generations, trait measurements, and population identifiers.
+The tutorial data is included with the MONET package and can be loaded directly from the package installation. We will load genetic data for both the parental and F1 generations, trait measurements, and population identifiers.
 
 \begin{lstlisting}
 # Step 1: Load genetic data (dosage format)
 # Load parental dosages
 dos_P_neutral <- readRDS(
   system.file("extdata", "vignette_dos_parental_neutral.rds", 
-              package = "LAVA")
+              package = "MONET")
 )
 
 # Load F1 dosages
 dos_F1only_neutral <- readRDS(
   system.file("extdata", "vignette_dos_F1only_neutral.rds", 
-              package = "LAVA")
+              package = "MONET")
 )
 
 # Check the format
@@ -390,19 +390,19 @@ The genetic data is in the correct dosage format (0, 1, 2) with individuals as r
 # Step 2: Load trait data
 trait_df_pop <- read.csv(
   system.file("extdata", "vignette_trait_df_pop.csv", 
-              package = "LAVA")
+              package = "MONET")
 )
 
 # Load population-to-individual mapping (F1 individuals)
 population_individual_id <- read.csv(
   system.file("extdata", "vignette_population_individual_id_df.csv", 
-              package = "LAVA")
+              package = "MONET")
 )
 
 # Load population IDs for genotyped parents
 pop_id <- readRDS(
   system.file("extdata", "vignette_pop_id.rds", 
-              package = "LAVA")
+              package = "MONET")
 )
 
 # Examine the trait data
@@ -438,7 +438,7 @@ The trait data includes individual IDs, trait values, and population assignments
 
 \subsection{Calculating Coancestries}
 
-Now we calculate the two coancestry matrices needed for LAVA: $\Theta_P$ (population-level) and $M$ (individual-level). The \texttt{calculate\_coancestries()} function handles all the computation:
+Now we calculate the two coancestry matrices needed for MONET: $\Theta_P$ (population-level) and $M$ (individual-level). The \texttt{calculate\_coancestries()} function handles all the computation:
 
 \begin{lstlisting}
 # Step 3: Calculate coancestry matrices
@@ -492,17 +492,17 @@ Coancestry matrices calculated:
   M dimensions: 900 900
 \end{verbatim}
 
-If either matrix is not positive definite (minimum eigenvalue $< 0$), LAVA will automatically correct it using \texttt{nearPD} and issue a warning. However, it is important to note that non-positive-definiteness can signal issues in the estimation of relatedness. If you receive a non-positive-definite warning, ensure that your individuals are correctly attributed to their populations of origin and double-check individual identification. If there are very negative eigenvalues, the correction from \texttt{nearPD} might require large distortions of the relatedness patterns. 
+If either matrix is not positive definite (minimum eigenvalue $< 0$), MONET will automatically correct it using \texttt{nearPD} and issue a warning. However, it is important to note that non-positive-definiteness can signal issues in the estimation of relatedness. If you receive a non-positive-definite warning, ensure that your individuals are correctly attributed to their populations of origin and double-check individual identification. If there are very negative eigenvalues, the correction from \texttt{nearPD} might require large distortions of the relatedness patterns. 
 
-\subsection{Running LAVA}
+\subsection{Running MONET}
 
 \subsubsection{Basic Analysis Without Covariates}
 
-Now we run the main LAVA analysis. This fits a Bayesian mixed-effects model to test whether the trait shows evidence of local adaptation:
+Now we run the main MONET analysis. This fits a Bayesian mixed-effects model to test whether the trait shows evidence of local adaptation:
 
 \begin{lstlisting}
-# Step 4: Run LAVA analysis
-results <- lava(
+# Step 4: Run MONET analysis
+results <- monet(
   Theta.P            = Theta.P,
   M =                = M,
   trait_dataframe    = trait_df_pop,
@@ -530,7 +530,7 @@ Chain 1: Adjust your expectations accordingly!
 ...
 \end{verbatim}
 
-The model will take a few minutes to run. After sampling completes, LAVA prints a model summary:
+The model will take a few minutes to run. After sampling completes, MONET prints a model summary:
 
 \textbf{Model summary output:}
 \begin{verbatim}
@@ -573,7 +573,7 @@ sigma     0.22      0.02     0.17     0.26 1.02      243      315
 
 \subsubsection{Interpreting the Results}
 
-Now let's examine the LAVA-specific output:
+Now let's examine the MONET-specific output:
 
 \begin{lstlisting}
 # View the results
@@ -582,7 +582,7 @@ print(results)
 
 \textbf{Output:}
 \begin{verbatim}
-=== LAVA Analysis Results ===
+=== MONET Analysis Results ===
 
 Trait analyzed: trait 
 Formula used: Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)) 
@@ -614,7 +614,7 @@ Use plot() to visualize the posterior distribution.
 
 \textbf{Examining posterior samples:}
 
-You can inspect the raw posterior samples that LAVA saved:
+You can inspect the raw posterior samples that MONET saved:
 
 \begin{lstlisting}
 # First few posterior samples
@@ -682,9 +682,9 @@ The results object contains:
 \subsection{Analyzing Environmental Covariate}
 
 \begin{lstlisting}
-# Step 5: Load environmental data and run LAVA with environment
+# Step 5: Load environmental data and run MONET with environment
 trait_df_pop_env <- read.csv(
-  system.file("extdata", "vignette_environment_df.csv", package = "LAVA")
+  system.file("extdata", "vignette_environment_df.csv", package = "MONET")
 )
 \end{lstlisting}
 
@@ -704,8 +704,8 @@ print(head(trait_df_pop_env))
 \end{verbatim}
 
 \begin{lstlisting}
-#Running LAVA analysis with environmental covariate
-results_env <- lava(
+#Running MONET analysis with environmental covariate
+results_env <- monet(
   Theta.P = Theta.P,
   M = M,
   trait_dataframe = trait_df_pop_env,
@@ -753,7 +753,7 @@ Covariates should be columns in your trait data frame, which should be the same 
 
 \begin{lstlisting}
 # Example: Including sex as a covariate
-result_with_sex <- lava(
+result_with_sex <- monet(
   Theta.P               = Theta.P,
   M                     = M,
   trait_dataframe       = trait_data,
@@ -764,7 +764,7 @@ result_with_sex <- lava(
 )
 
 # Multiple covariates
-result_multiple <- lava(
+result_multiple <- monet(
   Theta.P               = Theta.P,
   M                     = M,
   trait_dataframe       = trait_data,
@@ -784,11 +784,11 @@ result_multiple <- lava(
 
 \subsubsection{Custom Model Specifications}
 
-LAVA uses \texttt{brms} for model fitting, which provides extensive flexibility for customization. You can pass additional arguments to \texttt{brms} through the \texttt{lava()} function.
+MONET uses \texttt{brms} for model fitting, which provides extensive flexibility for customization. You can pass additional arguments to \texttt{brms} through the \texttt{monet()} function.
 
 \textbf{Custom Priors:}
 
-By default, LAVA uses the default priors from \texttt{brms}. However, you may want to specify custom priors based on your system or prior knowledge, doing the following:
+By default, MONET uses the default priors from \texttt{brms}. However, you may want to specify custom priors based on your system or prior knowledge, doing the following:
 
 \begin{lstlisting}
 library(brms)
@@ -800,8 +800,8 @@ my_priors <- c(
   prior(normal(0, 0.5), class = sigma)
 )
 
-# Run LAVA with custom priors
-result_custom <- lava(
+# Run MONET with custom priors
+result_custom <- monet(
   Theta.P           = Theta.P,
   M                 = M,
   trait_dataframe   = trait_data,
@@ -817,7 +817,7 @@ You can adjust the MCMC sampling parameters for better convergence or faster com
 
 \begin{lstlisting}
 # More iterations for difficult models
-result_long <- lava(
+result_long <- monet(
   Theta.P           = Theta.P,
   M                 = M,
   trait_dataframe   = trait_data,
@@ -830,7 +830,7 @@ result_long <- lava(
 )
 
 # Adjust adapt_delta for divergent transitions
-result_adapted <- lava(
+result_adapted <- monet(
   Theta.P = Theta.P,
   M = M,
   trait_dataframe = trait_data,
@@ -851,7 +851,7 @@ head(trait_data)
 #   F001    15.2         0.5
 #   F002    14.8         0.4
 
-result_with_se <- lava(
+result_with_se <- monet(
   Theta.P           = Theta.P,
   M                 = M,
   trait_dataframe   = trait_data,
@@ -865,12 +865,12 @@ result_with_se <- lava(
 
 Bayesian models require careful checking of convergence diagnostics to ensure the results are reliable.
 
-\textbf{Checking the LAVA output:}
+\textbf{Checking the MONET output:}
 
-The LAVA results object includes basic convergence diagnostics:
+The MONET results object includes basic convergence diagnostics:
 
 \begin{lstlisting}
-# After running lava()
+# After running monet()
 result$convergence
 
 # $n_divergent
@@ -885,7 +885,7 @@ result$convergence
 For further analysis and diagnostics, save the full brms model:
 
 \begin{lstlisting}
-result_full <- lava(
+result_full <- monet(
   Theta.P           = Theta.P,
   M                 = M,
   trait_dataframe   = trait_data,
@@ -908,13 +908,13 @@ $$Q_{ST} = \frac{V_B}{V_B + 2V_W}$$
 
 where $V_B$ is the additive genetic variance between populations and $V_W$ is the additive genetic variance within populations.
 
-The issue we were focusing on addressing with lava lies on a critical assumption of  $Q_{ST}$-$F_{ST}$ methods. $Q_{ST}$-$F_{ST}$ methods assume that all subpopulations are equally related, that is, they follow an island model with uniform migration rates and equal effective population sizes. Under this assumption, $F_{ST}$ is a scalar that adequately describes population structure.
+The issue we were focusing on addressing with monet lies on a critical assumption of  $Q_{ST}$-$F_{ST}$ methods. $Q_{ST}$-$F_{ST}$ methods assume that all subpopulations are equally related, that is, they follow an island model with uniform migration rates and equal effective population sizes. Under this assumption, $F_{ST}$ is a scalar that adequately describes population structure.
 
 However, metapopulations are not likely to follow an island model. Instead, we expect metapopulations to have isolation by distance, potentially hierarchical structures with some subpopulations clustering into distinct lineages, variable effective sizes with some subpopulations having higher inbreeding than others, and so on.
 
 When population structure deviates from the island model, $Q_{ST}$-$F_{ST}$ comparisons can produce inflated false positive rates \citep{de2022common,do2025method}. This occurs because the method incorrectly assumes equal relatedness between all population pairs when calculating the expected neutral divergence.
 
-LAVA addresses the limitations of $Q_{ST}$-$F_{ST}$ by explicitly modeling population structure using coancestry matrices rather than relying on a single summary statistic.
+MONET addresses the limitations of $Q_{ST}$-$F_{ST}$ by explicitly modeling population structure using coancestry matrices rather than relying on a single summary statistic.
 
 The method is based on the premise that, under neutrality, we can estimate the ancestral additive genetic variance in two independent ways, and these estimates should agree.
 
@@ -936,7 +936,7 @@ Under selection:
 
 \subsubsection{The Statistical Model}
 
-LAVA fits a Bayesian linear mixed-effects model (through \texttt{brms} to the phenotypic data:
+MONET fits a Bayesian linear mixed-effects model (through \texttt{brms} to the phenotypic data:
 
 $$z = \mu + X\beta + a_p + a_i + \epsilon$$
 
@@ -969,7 +969,7 @@ The Bayesian framework provides a full posterior distribution for LogAV, from wh
 
 \subsection{Coancestry Matrices}
 
-LAVA uses two coancestry matrices to model population structure:
+MONET uses two coancestry matrices to model population structure:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%% !!!!!!!!!!!!! ATTENTION !!!!!!!! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -989,7 +989,7 @@ $\Theta_P$ is an $r \times r$ matrix (where $r$ is the number of populations) th
 
 Element $\Theta_{P,ij}$ represents the average probability of identity by descent (IBD) between a random allele from population $i$ and a random allele from population $j$, relative to the ancestral population.
 
-\textbf{Calculation:} LAVA uses the allele-sharing method of moments \citep{weir2017unified,goudet2023allele}:
+\textbf{Calculation:} MONET uses the allele-sharing method of moments \citep{weir2017unified,goudet2023allele}:
 
 $$\hat{\Theta}_P = \frac{\bar{A}^{\mathcal{P}}_s - \min(\bar{A}^{\mathcal{P}}_s)}{1 - \min(\bar{A}^{\mathcal{P}}_s)}$$
 
@@ -1042,7 +1042,7 @@ Ideally, no. $\Theta_P$ should describe the neutral structure of the source popu
 
 \subsubsection{Is a common garden necessary?}
 
-Yes, we strongly recommend using a common garden or another strategy to standardize environmental effects.  Like $Q_{ST}$-$F_{ST}$ methods, LAVA results without common gardens can be confounded by phenotypic plasticity (or environmental effects) and genotype-by-environment interactions.  Without environmental standardization, you cannot reliably distinguish genetic differences from environmental effects or plasticity.
+Yes, we strongly recommend using a common garden or another strategy to standardize environmental effects.  Like $Q_{ST}$-$F_{ST}$ methods, MONET results without common gardens can be confounded by phenotypic plasticity (or environmental effects) and genotype-by-environment interactions.  Without environmental standardization, you cannot reliably distinguish genetic differences from environmental effects or plasticity.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1051,11 +1051,11 @@ Yes, we strongly recommend using a common garden or another strategy to standard
 If you encounter issues not covered in this vignette:
 
 \begin{itemize}
-\item \textbf{Package documentation:} \texttt{help(package = "LAVA")}
-\item \textbf{Function help:} \texttt{?lava} or \texttt{?calculate\_coancestries}
-\item \textbf{GitHub repository:} \url{https://github.com/isadoo/LAVA}
+\item \textbf{Package documentation:} \texttt{help(package = "MONET")}
+\item \textbf{Function help:} \texttt{?monet} or \texttt{?calculate\_coancestries}
+\item \textbf{GitHub repository:} \url{https://github.com/isadoo/MONET}
 \item \textbf{Email contact:} jeronimoisabela@gmail.com
-\item \textbf{Report issues:} \url{https://github.com/isadoo/LAVA/issues}
+\item \textbf{Report issues:} \url{https://github.com/isadoo/MONET/issues}
 \end{itemize}
 
 For issues with \texttt{brms} specifically:

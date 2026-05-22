@@ -36,14 +36,14 @@ This matrix has a block-diagonal structure where:
 \item Between blocks: zeros (individuals from different populations)
 }
 
-The matrix is used as input to the lava() function to model within-population
+The matrix is used as input to the monet() function to model within-population
 genetic structure and family relationships.
 }
 \examples{
 \dontrun{
 # Load the data
 M <- readRDS(
-  system.file("extdata", "vignette_The_M.rds", package = "LAVA")
+  system.file("extdata", "vignette_The_M.rds", package = "MONET")
 )
 
 # Check dimensions
