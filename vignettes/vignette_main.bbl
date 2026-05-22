@@ -1,0 +1,58 @@
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Danecek et~al.(2011)Danecek, Auton, Abecasis, Albers, Banks, DePristo, Handsaker, Lunter, Marth, Sherry, et~al.]{danecek2011variant}
+Petr Danecek, Adam Auton, Goncalo Abecasis, Cornelis~A Albers, Eric Banks, Mark~A DePristo, Robert~E Handsaker, Gerton Lunter, Gabor~T Marth, Stephen~T Sherry, et~al.
+\newblock The variant call format and vcftools.
+\newblock \emph{Bioinformatics}, 27\penalty0 (15):\penalty0 2156--2158, 2011.
+
+\bibitem[de~Villemereuil et~al.(2022)de~Villemereuil, Gaggiotti, and Goudet]{de2022common}
+Pierre de~Villemereuil, Oscar~E Gaggiotti, and J{\'e}r{\^o}me Goudet.
+\newblock Common garden experiments to study local adaptation need to account for population structure.
+\newblock \emph{Journal of Ecology}, 110\penalty0 (5):\penalty0 1005--1009, 2022.
+
+\bibitem[do~O et~al.(2025)do~O, Gaggiotti, de~Villemereuil, and Goudet]{do2025method}
+Isabela do~O, Oscar~E Gaggiotti, Pierre de~Villemereuil, and Jerome Goudet.
+\newblock A method for identifying local adaptation in structured populations.
+\newblock \emph{PLoS Genetics}, 21\penalty0 (9):\penalty0 e1011871, 2025.
+
+\bibitem[Goudet and Weir(2023)]{goudet2023allele}
+Jerome Goudet and Bruce~S Weir.
+\newblock An allele-sharing, moment-based estimator of global, population-specific and population-pair f st under a general model of population structure.
+\newblock \emph{PLoS genetics}, 19\penalty0 (11):\penalty0 e1010871, 2023.
+
+\bibitem[Huisman(2017)]{huisman2017pedigree}
+Jisca Huisman.
+\newblock Pedigree reconstruction from snp data: parentage assignment, sibship clustering and beyond.
+\newblock \emph{Molecular ecology resources}, 17\penalty0 (5):\penalty0 1009--1024, 2017.
+
+\bibitem[Jones and Wang(2010)]{jones2010colony}
+Owen~R Jones and Jinliang Wang.
+\newblock Colony: a program for parentage and sibship inference from multilocus genotype data.
+\newblock \emph{Molecular ecology resources}, 10\penalty0 (3):\penalty0 551--555, 2010.
+
+\bibitem[Knaus and Gr{\"u}nwald(2017)]{knaus2017vcfr}
+Brian~J Knaus and Niklaus~J Gr{\"u}nwald.
+\newblock vcfr: a package to manipulate and visualize variant call format data in r.
+\newblock \emph{Molecular ecology resources}, 17\penalty0 (1):\penalty0 44--53, 2017.
+
+\bibitem[Spitze(1993)]{spitze1993population}
+Ken Spitze.
+\newblock Population structure in daphnia obtusa: quantitative genetic and allozymic variation.
+\newblock \emph{Genetics}, 135\penalty0 (2):\penalty0 367--374, 1993.
+
+\bibitem[Weeks(2010)]{weeks2010plink}
+Jonathan~P Weeks.
+\newblock plink: An r package for linking mixed-format tests using irt-based methods.
+\newblock \emph{Journal of Statistical Software}, 35:\penalty0 1--33, 2010.
+
+\bibitem[Weir and Goudet(2017)]{weir2017unified}
+Bruce~S Weir and J{\'e}r{\^o}me Goudet.
+\newblock A unified characterization of population structure and relatedness.
+\newblock \emph{Genetics}, 206\penalty0 (4):\penalty0 2085--2103, 2017.
+
+\end{thebibliography}
