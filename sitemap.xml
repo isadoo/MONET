@@ -1,16 +1,22 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
-<url><loc>https://isadoo.github.io/LAVA/404.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/BUILDING.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/LICENSE.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/authors.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/index.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/news/index.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/reference/LAVA-package.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/reference/calculate_coancestries.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/reference/counting_blocks_matrix.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/reference/index.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/reference/kinship_from_pedigree.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/reference/lava.html</loc></url>
-<url><loc>https://isadoo.github.io/LAVA/vscode-development.html</loc></url>
+<url><loc>/404.html</loc></url>
+<url><loc>/Readme.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/reference/MONET-package.html</loc></url>
+<url><loc>/reference/calculate_coancestries.html</loc></url>
+<url><loc>/reference/counting_blocks_matrix.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/kinship_from_pedigree.html</loc></url>
+<url><loc>/reference/monet.html</loc></url>
+<url><loc>/reference/neutral_data_g3000.html</loc></url>
+<url><loc>/reference/quanti_trait_g3000.html</loc></url>
+<url><loc>/reference/vignette_The_M.html</loc></url>
+<url><loc>/reference/vignette_Theta_P.html</loc></url>
+<url><loc>/reference/vignette_dos_F1only_neutral.html</loc></url>
+<url><loc>/reference/vignette_dosage_quanti_F1.html</loc></url>
+<url><loc>/reference/vignette_monet_results.html</loc></url>
+<url><loc>/reference/vignette_population_individual_id_df.html</loc></url>
+<url><loc>/reference/vignette_trait_df_pop.html</loc></url>
 </urlset>
 
