@@ -1,0 +1,43 @@
+Package: MONET
+Type: Package
+Title: Model of Neutral Evolution of Traits
+Version: 0.1.0
+Authors@R: c(
+    person("Isabela", "do O", email = "isabela.doo@unil.ch", role = c("aut", "cre")),
+    person("Oscar E", "Gaggiotti", role = "aut"),
+    person("Pierre", "de Villemereuil", role = "aut"),
+    person("Jerome", "Goudet", role = "aut")
+    )
+Description: Implements a Bayesian linear mixed-effects model of neutral trait
+    evolution in spatially structured populations. It then allows for a series of
+    hypothesis testing such as for local or global adaptation
+    by comparing two estimates of ancestral additive genetic variance derived from
+    between-population divergence and within-population variation, using coancestry
+    matrices to explicitly model population structure. It also allows for other tests
+    such as testing for correlation between trait divergence and environmental patterns.
+License: GPL (>= 3)
+Encoding: UTF-8
+LazyData: true
+Imports:
+    brms,
+    hierfstat,
+    kinship2,
+    dplyr,
+    tidyr,
+    magrittr,
+    Matrix,
+    grDevices,
+    graphics,
+    stats
+Suggests:
+    testthat (>= 3.0.0),
+    covr,
+    pkgdown,
+    gaston,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/isadoo/MONET
+BugReports: https://github.com/isadoo/MONET/issues
+RoxygenNote: 7.3.2
