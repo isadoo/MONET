@@ -61,8 +61,7 @@ effective population sizes).
 
 **We welcome your feedback\!** If you have suggestions, questions, or
 find any issues, please reach out via our [GitHub Issues
-page](https://github.com/isadoo/MONET/issues) or contact
-isabela\[dot\]doo\[at\]unil\[dot\]ch
+page](https://github.com/isadoo/MONET/issues) or contact <isabela.doo@unil.ch>.
 
 ## Installation
 
@@ -209,7 +208,7 @@ contribute or have suggestions, or by email through
 ## Citation
 
 If you use MONET in your research, please cite:
-doi.org/10.1371/journal.pgen.1011871
+[doi.org/10.1371/journal.pgen.1011871](doi.org/10.1371/journal.pgen.1011871)
 
 ## Acknowledgments
 
