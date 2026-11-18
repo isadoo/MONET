@@ -2,7 +2,7 @@
 % Please edit documentation in R/kinship_from_pedigree.r
 \name{kinship_from_pedigree}
 \alias{kinship_from_pedigree}
-\title{Kinship Matrix from Pedigree}
+\title{Kinship Matrix from Pedigree (deprecated)}
 \usage{
 kinship_from_pedigree(pedigree)
 }
@@ -19,7 +19,12 @@ A symmetric kinship matrix where rows and columns are labeled with individual ID
 Diagonal elements represent self-relatedness (1), and off-diagonal elements represent relatedness between individuals.
 }
 \description{
-Generates a kinship matrix from a pedigree data frame.
+Deprecated: MONET no longer uses this function. \code{calculate_coancestries()}
+now gets kinship coefficients from a pedigree with \code{kinship2::kinship()} and turns them
+into a relationship matrix with \code{hierfstat::kinship2grm()}. This function is kept so that
+older scripts still run, and it warns when called.
+
+Generates a relatedness matrix (2 x kinship) from a pedigree data frame.
 The matrix represents the relatedness between individuals based on shared parents.
 }
 \details{
@@ -28,10 +33,13 @@ Half-sibling relationships (shared sire or dam) yield a coefficient of \eqn{\fra
 If individuals share both parents (full siblings), their kinship coefficient is \eqn{\frac{1}{4} + \frac{1}{4} = \frac{1}{2}}.
 
 Note: This function uses \code{kinship2::kinship()} internally and converts the kinship coefficients
-to a relatedness matrix by multiplying by 2.
+to a relatedness matrix by multiplying by 2. Do not pass its output to
+\code{hierfstat::kinship2grm()}, which multiplies by 2 again.
+
+Parents must also be rows of \code{pedigree} (with NA parents). \code{kinship2::kinship()} treats
+an individual whose parents are not rows as a founder, unrelated to everyone, including its sibs.
 }
 \examples{
-\dontrun{
 # Create a simple pedigree
 pedigree <- data.frame(
   id = c("A", "B", "C", "D"),
@@ -39,9 +47,9 @@ pedigree <- data.frame(
   dam = c(NA, NA, "B", "B")
 )
 
-# Calculate kinship matrix
-kinship_matrix <- kinship_from_pedigree(pedigree)
-}
+# Calculate kinship matrix (internal function, hence :::)
+kinship_matrix <- MONET:::kinship_from_pedigree(pedigree)
+
 }
 \references{
 Lynch, M., & Walsh, B. (1998). Genetics and analysis of quantitative traits.

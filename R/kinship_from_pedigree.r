@@ -1,7 +1,12 @@
 ###########################################################################
-#' @title Kinship Matrix from Pedigree
+#' @title Kinship Matrix from Pedigree (deprecated)
 #'
-#' @description Generates a kinship matrix from a pedigree data frame. 
+#' @description Deprecated: MONET no longer uses this function. \code{calculate_coancestries()}
+#' now gets kinship coefficients from a pedigree with \code{kinship2::kinship()} and turns them
+#' into a relationship matrix with \code{hierfstat::kinship2grm()}. This function is kept so that
+#' older scripts still run, and it warns when called.
+#'
+#' Generates a relatedness matrix (2 x kinship) from a pedigree data frame.
 #' The matrix represents the relatedness between individuals based on shared parents.
 #'
 #' @usage kinship_from_pedigree(pedigree)
@@ -21,7 +26,11 @@
 #' If individuals share both parents (full siblings), their kinship coefficient is \eqn{\frac{1}{4} + \frac{1}{4} = \frac{1}{2}}.
 #' 
 #' Note: This function uses \code{kinship2::kinship()} internally and converts the kinship coefficients
-#' to a relatedness matrix by multiplying by 2.
+#' to a relatedness matrix by multiplying by 2. Do not pass its output to
+#' \code{hierfstat::kinship2grm()}, which multiplies by 2 again.
+#'
+#' Parents must also be rows of \code{pedigree} (with NA parents). \code{kinship2::kinship()} treats
+#' an individual whose parents are not rows as a founder, unrelated to everyone, including its sibs.
 #'
 #' @examples
 #' # Create a simple pedigree
@@ -31,8 +40,8 @@
 #'   dam = c(NA, NA, "B", "B")
 #' )
 #' 
-#' # Calculate kinship matrix
-#' kinship_matrix <- kinship_from_pedigree(pedigree)
+#' # Calculate kinship matrix (internal function, hence :::)
+#' kinship_matrix <- MONET:::kinship_from_pedigree(pedigree)
 #'
 #' @author Isabela do O \email{isabela.doo@@unil.ch}
 #' 
@@ -42,7 +51,12 @@
 #' 
 #' @keywords internal
 kinship_from_pedigree <- function(pedigree) {
-  
+
+  .Deprecated(msg = paste0(
+    "kinship_from_pedigree() is deprecated and no longer used by MONET.\n",
+    "Use kinship2::kinship() for kinship coefficients. This function returns 2 x kinship, ",
+    "so do not pass its output to hierfstat::kinship2grm()."))
+
   # Use kinship2::kinship function
   # The kinship2::kinship function returns kinship coefficients (values 0-0.5)
   # We need to convert to a relatedness matrix (values 0-1) by multiplying by 2

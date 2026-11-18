@@ -10,9 +10,11 @@ monet(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "tra
             standardize_trait = NULL, ...)
 }
 \arguments{
-\item{Theta.P}{A square matrix representing the coancestry matrix between populations.}
+\item{Theta.P}{A square matrix representing the coancestry matrix between populations.
+Must be positive definite (see the \code{nearPD} argument of \code{calculate_coancestries()}).}
 
-\item{M}{A square matrix representing the kinship-based relatedness matrix for individuals.}
+\item{M}{A square matrix representing the kinship-based relatedness matrix for individuals.
+Must be positive definite (see the \code{nearPD} argument of \code{calculate_coancestries()}).}
 
 \item{trait_dataframe}{A data frame containing individual IDs and trait values.
 The first column should be individual IDs, and the second column should be trait values.}

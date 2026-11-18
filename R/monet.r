@@ -9,8 +9,10 @@
 #'             standardize_trait = NULL, ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
+#' Must be positive definite (see the \code{nearPD} argument of \code{calculate_coancestries()}).
 #'
 #' @param M A square matrix representing the kinship-based relatedness matrix for individuals.
+#' Must be positive definite (see the \code{nearPD} argument of \code{calculate_coancestries()}).
 #'
 #' @param trait_dataframe A data frame containing individual IDs and trait values. 
 #' The first column should be individual IDs, and the second column should be trait values.
@@ -77,17 +79,29 @@ monet <- function(Theta.P,
                  standardize_trait = NULL,
                  ...) {
   
-  #check input types and dimensions ------------------------
+  #check input types and dimensions 
   if (!is.matrix(Theta.P) || !is.matrix(M)) {
     stop("Theta.P and M must be matrices.")
   }
-  
+
+  # Theta.P and M are used as covariance matrices, so they must be positive definite
+  coancestry_matrices <- list(Theta.P = Theta.P, M = M)
+  for (name in names(coancestry_matrices)) {
+    eigenvalues <- eigen(coancestry_matrices[[name]], symmetric = TRUE, only.values = TRUE)$values
+    if (any(eigenvalues < 0)) {
+      warning("The coancestry matrix you've entered (", name, ") is not positive definite. ",
+              "These matrices serve the role of a variance-covariance matrix. Thus, they need to be PD. ",
+              "You can either rerun calculate_coancestries() with nearPD = TRUE or you should choose ",
+              "your own method to make the matrix positive definite.", call. = FALSE)
+    }
+  }
+
   if (!is.data.frame(trait_dataframe) || ncol(trait_dataframe) < 2) {
     stop("trait_dataframe must be a data frame with at least two columns (ID and trait values).")
   }
   #------------------------------------------------------------
   
-  #extract columns by name if provided ------------------------------------
+  #extract columns by name if provided 
   id_col <- if(is.numeric(column_individual)) column_individual else which(names(trait_dataframe) == column_individual)
   trait_col <- if(is.numeric(column_trait)) column_trait else which(names(trait_dataframe) == column_trait)
   
@@ -386,7 +400,7 @@ monet <- function(Theta.P,
   hyp <- "sd_pop__Intercept^2 - sd_ind__Intercept^2 = 0"
   the_hyp <- hypothesis(brms_mf, hyp, class = NULL)
 
-  # --- core draws we need ---
+  # -> core draws we need <---
   # Get all draws once, then select columns we care about depending on save_full_model
   all_draws <- posterior::as_draws_df(brms_mf)
 
@@ -418,7 +432,7 @@ if (length(have_sd) == 2) {
   # For summary stats below we still use post_samples with log_ratio
   post_samples <- minimal_samples
 
-  # --- summaries of log-ratio ---
+  # summaries of log-ratio
   if ("log_ratio" %in% names(post_samples)) {
     quant_log_med   <- stats::quantile(post_samples$log_ratio, c(0.5, 0.025, 0.975))
     mean_log_ratio  <- mean(post_samples$log_ratio)

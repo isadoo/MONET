@@ -7,7 +7,7 @@
 calculate_coancestries(genetic_data_parents, genotyped_parent_populations,
   genetic_data_F1 = NA, population_individual_id = NA,
   column_individual = "id", column_population = "population_id",
-  pedigree = NA, all_parents_genotyped = FALSE, verbose = TRUE)
+  pedigree = NA, all_parents_genotyped = FALSE, verbose = TRUE, nearPD = TRUE)
 }
 \arguments{
 \item{genetic_data_parents}{A data frame or file name containing genetic data for the parental generation. Must be dosage format.}
@@ -23,17 +23,29 @@ If not provided, a balanced design is assumed.}
 
 \item{column_population}{The name of the column containing population IDs. Default is "population_id".}
 
-\item{pedigree}{(Optional) A data frame containing pedigree information with at least three columns:
-individual ID, dam ID, and sire ID.}
+\item{pedigree}{(Optional) A data frame with one row per individual and the columns \code{id},
+\code{sire}, \code{dam}, \code{sire_pop} and \code{dam_pop}. Unknown parents are NA ("" and "0" are
+also read as unknown). Parents named in \code{sire} or \code{dam} that are not rows of the pedigree
+are added as unrelated, non-inbred founders, with a warning, so that their offspring are related;
+they are not included in \code{M}.}
 
 \item{all_parents_genotyped}{Logical; if TRUE, indicates that the genotyped individuals in "genotyped_parent_populations" are the parents of F1 individuals}
 
 \item{verbose}{Logical; if TRUE (default), prints informational messages during calculation. If FALSE, suppresses output.}
+
+\item{nearPD}{Logical; if TRUE (default), a Theta.P or M that is not positive definite is replaced
+by the nearest positive definite matrix from \code{Matrix::nearPD()}, with a warning. If FALSE, it is
+returned uncorrected, with a warning. \code{monet()} needs positive definite matrices, so with
+\code{nearPD = FALSE} a matrix that is not positive definite must be corrected in another way first.}
 }
 \value{
 A list containing:
 \item{M}{A kinship-based relatedness matrix adjusted for F1 individuals.}
 \item{Theta.P}{An adjusted population coancestry matrix.}
+\item{M.raw}{M before the \code{nearPD} step. Identical to M when M is positive definite or
+\code{nearPD = FALSE}.}
+\item{Theta.P.raw}{Theta.P before the \code{nearPD} step. Identical to Theta.P when Theta.P is
+positive definite or \code{nearPD = FALSE}.}
 }
 \description{
 Given genetic data it provides coancestry for between and within populations
@@ -41,6 +53,11 @@ Given genetic data it provides coancestry for between and within populations
 \details{
 This function calculates kinship and coancestry measures from genetic data
 or pedigree-based information, adjusting for population structure and F1 generation characteristics.
+
+M depends on Theta.P: each population's block of M is multiplied by \eqn{1 - \theta_{pp}}, the
+diagonal element of Theta.P for that population. With \code{nearPD = TRUE}, M and M.raw are built
+with the corrected Theta.P, so correcting Theta.P also changes M slightly. With
+\code{nearPD = FALSE}, they are built with the uncorrected Theta.P.
 }
 \references{
 \itemize{
