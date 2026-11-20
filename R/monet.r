@@ -6,7 +6,7 @@
 #' @usage monet(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait", 
 #'             column_population = "population", column_se = NULL, formula_covariates = NULL, 
 #'             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE,
-#'             standardize_trait = NULL, ...)
+#'             standardize_trait = NULL, formula = NULL, ...)
 #'
 #' @param Theta.P A square matrix representing the coancestry matrix between populations.
 #' Must be positive definite (see the \code{nearPD} argument of \code{calculate_coancestries()}).
@@ -28,6 +28,7 @@
 #' 
 #' @param formula_covariates A character string specifying additional covariates to include in the model.
 #' For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).
+#' Use either formula_covariates or formula.
 #' 
 #' @param iter Number of MCMC iterations per chain. Default is 5000.
 #' 
@@ -43,20 +44,34 @@
 #' If NULL (default), the function auto-detects likely discrete traits (integer-like with <= 10 unique values)
 #' and skips standardization for those traits.
 #' 
+#' @param formula Optional. A full model formula that replaces the default one: a formula, a character
+#' string or a \code{brms::bf()} formula (for example with \code{sigma ~ sex}). The response must be
+#' \code{Y} (the trait in column_trait), and the formula must keep a population effect with Theta.P,
+#' \code{gr(pop, cov = two.Theta.P)}, and an individual effect with M, \code{gr(ind, cov = M)};
+#' otherwise monet() stops. Other variables must be columns of trait_dataframe. With column_se, write
+#' the measurement error in the response, e.g. \code{Y | se(Y_se, sigma = TRUE) ~ ...}.
+#' Default is NULL: \code{Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))}.
+#'
 #' @param ... Additional arguments passed to the brms function.
 #'
 #' @return A monet type object containing:
-#' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (V_AB, V_AW), and log_ratio.}
-#' \item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds).}
+#' \item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, the standard deviations and correlations of the pop and ind random effects, variance components (V_AB, V_AW), and log_ratio. When the log ratio is computed for several coefficients, V_AB, V_AW and log_ratio are suffixed with the coefficient (e.g. log_ratio_sexF).}
+#' \item{log_ratio}{A data frame with one row per random-effect coefficient present in both the pop and the ind terms (Intercept for the default formula; e.g. sexF and sexM for \code{(0 + sex | ...)}) and the columns: coefficient, p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds). NULL if no coefficient is shared.}
 #' \item{covariate_p_values}{Named numeric vector with two-tailed posterior sign-probability p-values for fixed-effect covariates (excluding intercept). NULL when no covariates are present.}
 #' \item{hypothesis}{Results from brms hypothesis test comparing population vs individual variance.}
 #' \item{trait_name}{Name of the trait column analyzed.}
 #' \item{formula_used}{The model formula used in the analysis.}
 #' \item{convergence}{A list containing n_divergent (number of divergent transitions) and max_rhat (maximum R-hat value across parameters).}
 #' 
-#' @details This function standardizes trait data, constructs a Bayesian mixed-effects model 
-#' using `brms`, and estimates ancestral variances. The function assumes no crosses between populations 
-#' and analyzes one trait at a time.
+#' @details This function standardizes trait data, constructs a Bayesian mixed-effects model using `brms`,
+#' and it estimates ancestral variances. The function assumes no crosses between populations and analyzes one trait at a time
+#'
+#'
+#' With \code{formula}, any brms model can be fitted as long as it keeps the Theta.P and M terms. For
+#' example, sex-specific variances:
+#' \code{brms::bf(Y ~ sex * habitat + (0 + sex | gr(pop, cov = two.Theta.P)) + (0 + sex | gr(ind, cov = M)), sigma ~ sex)}
+#' gives one log ratio for each sex. Quantities that combine coefficients, such as the log ratio for sexual dimorphism
+#' can be computed from the returned standard deviations and correlations.
 #'
 #' @author Isabela do O \email{isabela.doo@@unil.ch}
 #'
@@ -77,6 +92,7 @@ monet <- function(Theta.P,
                  iter = 5000, warmup = 2000, thin = 2,
                  save_full_model = FALSE,
                  standardize_trait = NULL,
+                 formula = NULL,
                  ...) {
   
   #check input types and dimensions 
@@ -99,7 +115,7 @@ monet <- function(Theta.P,
   if (!is.data.frame(trait_dataframe) || ncol(trait_dataframe) < 2) {
     stop("trait_dataframe must be a data frame with at least two columns (ID and trait values).")
   }
-  #------------------------------------------------------------
+ 
   
   #extract columns by name if provided 
   id_col <- if(is.numeric(column_individual)) column_individual else which(names(trait_dataframe) == column_individual)
@@ -299,28 +315,59 @@ monet <- function(Theta.P,
   dat$ind <- factor(dat$ind, levels = rownames(M))
   dat$pop <- factor(dat$pop, levels = rownames(Theta.P))
 
-  # Add any additional covariates that might be specified
-  if (!is.null(formula_covariates)) {
-    # Extract real variable names from formula terms, including random-effect grouping vars
+  # Check a user formula: it must model Y and keep the Theta.P and M terms
+  covariate_names <- NULL
+  if (!is.null(formula)) {
+    if (!is.null(formula_covariates)) {
+      stop("Use either formula or formula_covariates, not both.")
+    }
+    if (is.character(formula)) formula <- stats::as.formula(formula)
+    main_formula <- if (inherits(formula, "brmsformula")) formula$formula else formula
+    if (!inherits(main_formula, "formula") || length(main_formula) != 3) {
+      stop("formula must be a two-sided formula, a character string or a brms::bf() formula.")
+    }
+    if (!"Y" %in% all.vars(main_formula[[2]])) {
+      stop("The response in formula must be Y, the trait given in column_trait.")
+    }
+    gr_terms <- find_gr_terms(main_formula[[3]])
+    if (!"pop:two.Theta.P" %in% gr_terms || !"ind:M" %in% gr_terms) {
+      stop("formula must keep a population effect with Theta.P, gr(pop, cov = two.Theta.P), ",
+           "and an individual effect with M, gr(ind, cov = M), for example ",
+           "(1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M)).")
+    }
+    if (have_se && !"Y_se" %in% all.vars(main_formula[[2]])) {
+      warning("column_se is not used: with formula, write the measurement error in the response, ",
+              "e.g. Y | se(Y_se, sigma = TRUE) ~ ...", call. = FALSE)
+    }
+    other_formulas <- if (inherits(formula, "brmsformula")) formula$pforms else list()
+    formula_vars <- c(all.vars(main_formula[[3]]),
+                      unlist(lapply(other_formulas, function(f) all.vars(f[[length(f)]]))))
+    covariate_names <- setdiff(unique(formula_vars), c("pop", "ind", "two.Theta.P", "M"))
+  } else if (!is.null(formula_covariates)) {
     covariate_names <- unique(all.vars(stats::as.formula(paste("~", formula_covariates))))
-    
-    for (cov_name in covariate_names) {
-      if (cov_name %in% names(trait_dataframe)) {
-        cov_data <- trait_dataframe[, cov_name]
-        if (is.list(cov_data)) cov_data <- unlist(cov_data)
-        dat[[cov_name]] <- cov_data
-      } else {
-        stop(paste("Covariate", cov_name, "not found in trait_dataframe"))
-      }
+  }
+
+  # Add the covariates used by the model
+  for (cov_name in covariate_names) {
+    if (cov_name %in% names(trait_dataframe)) {
+      cov_data <- trait_dataframe[, cov_name]
+      if (is.list(cov_data)) cov_data <- unlist(cov_data)
+      dat[[cov_name]] <- cov_data
+    } else {
+      stop(paste("Covariate", cov_name, "not found in trait_dataframe"))
     }
   }
-  
+
   #Build the complete formula
-  base_formula <- "Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))"
   base_rhs <- "(1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))"
   rhs <- if (is.null(formula_covariates)) base_rhs else paste0(formula_covariates, " + ", base_rhs)
 
-  if (have_se) {
+  if (!is.null(formula)) {
+    model_formula <- formula
+    formula_string <- paste(c(paste(deparse(main_formula, width.cutoff = 500L), collapse = " "),
+                              vapply(other_formulas, function(f) paste(deparse(f, width.cutoff = 500L), collapse = " "), "")),
+                            collapse = ", ")
+  } else if (have_se) {
     # Use measurement error on the response; still estimate residual sigma
     formula_string <- paste0("Y | se(Y_se, sigma = TRUE) ~ 1 + ", rhs)
     model_formula <- brms::bf(stats::as.formula(formula_string))
@@ -393,53 +440,60 @@ monet <- function(Theta.P,
     warning(paste("Model had", n_divergent, "divergent transitions after warmup"))
   }
 
-  #variance components
-  var_components <- lapply(VarCorr(brms_mf, summary = FALSE), function(x) x$sd^2)
-  var_df <- as.data.frame(do.call(cbind, var_components))
-
-  hyp <- "sd_pop__Intercept^2 - sd_ind__Intercept^2 = 0"
-  the_hyp <- hypothesis(brms_mf, hyp, class = NULL)
-
   # -> core draws we need <---
   # Get all draws once, then select columns we care about depending on save_full_model
   all_draws <- posterior::as_draws_df(brms_mf)
 
-fe_cols <- grep("^b_", names(all_draws), value = TRUE)     # fixed effects
-sd_cols <- c("sd_pop__Intercept", "sd_ind__Intercept")     # two RE SDs
+  fe_cols <- grep("^b_", names(all_draws), value = TRUE)                    # fixed effects
+  re_cols <- grep("^(sd|cor)_(pop|ind)__", names(all_draws), value = TRUE)  # pop and ind random effects
 
-have_sd <- sd_cols[sd_cols %in% names(all_draws)]
+  # Covariate p-values from posterior sign probability (exclude intercepts)
+  covariate_p_values <- NULL
+  cov_cols <- setdiff(fe_cols, c("b_Intercept", "b_sigma_Intercept"))
+  if (length(cov_cols) > 0) {
+    covariate_p_values <- sapply(cov_cols, function(col) {
+      x <- all_draws[[col]]
+      2 * min(mean(x >= 0, na.rm = TRUE), mean(x <= 0, na.rm = TRUE))
+    })
+    names(covariate_p_values) <- sub("^b_", "", cov_cols)
+  }
 
-# Covariate p-values from posterior sign probability (exclude intercept)
-covariate_p_values <- NULL
-cov_cols <- setdiff(fe_cols, "b_Intercept")
-if (length(cov_cols) > 0) {
-  covariate_p_values <- sapply(cov_cols, function(col) {
-    x <- all_draws[[col]]
-    2 * min(mean(x >= 0, na.rm = TRUE), mean(x <= 0, na.rm = TRUE))
-  })
-  names(covariate_p_values) <- sub("^b_", "", cov_cols)
-}
+  minimal_samples <- all_draws[, unique(c(fe_cols, re_cols)), drop = FALSE]
 
-if (length(have_sd) == 2) {
-  minimal_samples <- all_draws[, unique(c(fe_cols, have_sd)), drop = FALSE]
-  minimal_samples$V_AB  <- minimal_samples$sd_pop__Intercept^2
-  minimal_samples$V_AW  <- minimal_samples$sd_ind__Intercept^2
-  minimal_samples$log_ratio <- log(minimal_samples$V_AB / minimal_samples$V_AW)
-} else {
-  warning("Issue with your model - missing sd_pop__Intercept and sd_ind__Intercept")
-}
+  # One log ratio per random-effect coefficient present in both the pop and the ind terms:
+  # "Intercept" for the default formula, e.g. "sexF" and "sexM" for (0 + sex | ...)
+  coefficients <- shared_coefficients(names(all_draws))
+  suffix <- if (identical(coefficients, "Intercept")) "" else paste0("_", coefficients)
+  names(suffix) <- coefficients
+  log_ratio <- NULL
+  hypothesis_table <- NULL
 
-  # For summary stats below we still use post_samples with log_ratio
-  post_samples <- minimal_samples
-
-  # summaries of log-ratio
-  if ("log_ratio" %in% names(post_samples)) {
-    quant_log_med   <- stats::quantile(post_samples$log_ratio, c(0.5, 0.025, 0.975))
-    mean_log_ratio  <- mean(post_samples$log_ratio)
-    quant_log_ratio <- stats::quantile(post_samples$log_ratio, probs = c(0.025, 0.975))
-    p_value <- 2 * mean(sign(post_samples$log_ratio) != sign(stats::median(post_samples$log_ratio)))
+  if (length(coefficients) == 0) {
+    warning("No random-effect coefficient is present in both the gr(pop, ...) and gr(ind, ...) terms, ",
+            "so no log ratio was computed.", call. = FALSE)
   } else {
-    warning("No log_ratio samples found - cannot compute log-ratio summaries.")
+    for (k in coefficients) {
+      V_AB <- minimal_samples[[paste0("sd_pop__", k)]]^2
+      V_AW <- minimal_samples[[paste0("sd_ind__", k)]]^2
+      minimal_samples[[paste0("V_AB", suffix[[k]])]] <- V_AB
+      minimal_samples[[paste0("V_AW", suffix[[k]])]] <- V_AW
+      minimal_samples[[paste0("log_ratio", suffix[[k]])]] <- log(V_AB / V_AW)
+    }
+
+    log_ratio <- do.call(rbind, lapply(coefficients, function(k) {
+      lr <- minimal_samples[[paste0("log_ratio", suffix[[k]])]]
+      data.frame(coefficient = k,
+                 p_value = 2 * mean(sign(lr) != sign(stats::median(lr))),
+                 mean = mean(lr),
+                 median = stats::median(lr),
+                 ci_lower = unname(stats::quantile(lr, 0.025)),
+                 ci_upper = unname(stats::quantile(lr, 0.975)))
+    }))
+
+    hyp <- paste0("sd_pop__", coefficients, "^2 - sd_ind__", coefficients, "^2 = 0")
+    the_hyp <- hypothesis(brms_mf, hyp, class = NULL)
+    hypothesis_table <- the_hyp$hypothesis[2:5]
+    rownames(hypothesis_table) <- coefficients
   }
 
   # ------------------------------------------------------------------------------------
@@ -454,17 +508,11 @@ if (length(have_sd) == 2) {
     minimal_samples
   },
 
-  log_ratio = list(
-    p_value = p_value,
-    mean = mean_log_ratio,
-    median = quant_log_med["50%"],
-    ci_lower = quant_log_ratio[1],
-    ci_upper = quant_log_ratio[2]
-  ),
+  log_ratio = log_ratio,
 
   covariate_p_values = covariate_p_values,
 
-  hypothesis = the_hyp$hypothesis[2:5],
+  hypothesis = hypothesis_table,
   trait_name = names(trait_dataframe)[trait_col],
   formula_used = formula_string,
   convergence = list(
@@ -482,12 +530,18 @@ print.monet <- function(x, ...) {
   cat("Formula used:", x$formula_used, "\n\n")
   
   cat("--- Log-Ratio of Ancestral Variances ---\n")
-  cat(sprintf("  Mean: %.4f\n", x$log_ratio$mean))
-  cat(sprintf("  Median: %.4f\n", x$log_ratio$median))
-  cat(sprintf("  95%% Credible Interval: [%.4f, %.4f]\n", 
-              x$log_ratio$ci_lower, x$log_ratio$ci_upper))
-  cat(sprintf("  P-value: %.4f\n\n", x$log_ratio$p_value))
-  
+  if (is.null(x$log_ratio)) {
+    cat("  Not computed (no random-effect coefficient shared by the pop and ind terms)\n\n")
+  }
+  for (i in seq_len(NROW(x$log_ratio))) {
+    lr <- x$log_ratio[i, ]
+    if (nrow(x$log_ratio) > 1) cat(" ", lr$coefficient, "\n")
+    cat(sprintf("  Mean: %.4f\n", lr$mean))
+    cat(sprintf("  Median: %.4f\n", lr$median))
+    cat(sprintf("  95%% Credible Interval: [%.4f, %.4f]\n", lr$ci_lower, lr$ci_upper))
+    cat(sprintf("  P-value: %.4f\n\n", lr$p_value))
+  }
+
   cat("--- Convergence Diagnostics ---\n")
   cat(sprintf("  Max R-hat: %.4f", x$convergence$max_rhat))
   if (x$convergence$max_rhat > 1.01) {
@@ -509,13 +563,17 @@ summary.monet <- function(object, ...) {
   cat(sprintf("Trait: %s\n\n", object$trait_name))
   
   cat("Log-Ratio of Ancestral Variances (log(VB/VA)):\n")
-  cat(sprintf("  Mean:   %7.4f\n", object$log_ratio$mean))
-  cat(sprintf("  Median: %7.4f\n", object$log_ratio$median))
-  cat(sprintf("  95%% CI: [%.4f, %.4f]\n", 
-              object$log_ratio$ci_lower, object$log_ratio$ci_upper))
-  cat(sprintf("  p-value: %.4f %s\n", 
-              object$log_ratio$p_value,
-              ifelse(object$log_ratio$p_value < 0.05, "*", "")))
+  if (is.null(object$log_ratio)) {
+    cat("  Not computed (no random-effect coefficient shared by the pop and ind terms)\n")
+  }
+  for (i in seq_len(NROW(object$log_ratio))) {
+    lr <- object$log_ratio[i, ]
+    if (nrow(object$log_ratio) > 1) cat(" ", lr$coefficient, "\n")
+    cat(sprintf("  Mean:   %7.4f\n", lr$mean))
+    cat(sprintf("  Median: %7.4f\n", lr$median))
+    cat(sprintf("  95%% CI: [%.4f, %.4f]\n", lr$ci_lower, lr$ci_upper))
+    cat(sprintf("  p-value: %.4f %s\n", lr$p_value, ifelse(lr$p_value < 0.05, "*", "")))
+  }
 
   if (!is.null(object$covariate_p_values) && length(object$covariate_p_values) > 0) {
     cat("\nCovariate posterior p-values:\n")
@@ -533,33 +591,68 @@ summary.monet <- function(object, ...) {
 plot.monet <- function(x, ...) {
   # Accept either a brmsfit (full model) or a draws data.frame in x$sampling
   if (inherits(x$sampling, "brmsfit")) {
-    # compute log_ratio from the model draws
+    # compute log_ratio from the model draws, one per coefficient shared by pop and ind
     draws <- posterior::as_draws_df(x$sampling)
-    if (!all(c("sd_pop__Intercept", "sd_ind__Intercept") %in% names(draws))) {
-      stop("Could not find sd_pop__Intercept/sd_ind__Intercept in model draws to compute log_ratio.")
+    coefficients <- shared_coefficients(names(draws))
+    if (length(coefficients) == 0) {
+      stop("Could not find sd_pop__<coefficient>/sd_ind__<coefficient> in model draws to compute log_ratio.")
     }
-    lr <- log((draws$sd_pop__Intercept^2) / (draws$sd_ind__Intercept^2))
+    log_ratios <- lapply(coefficients, function(k) {
+      log(draws[[paste0("sd_pop__", k)]]^2 / draws[[paste0("sd_ind__", k)]]^2)
+    })
+    names(log_ratios) <- coefficients
   } else {
     samp <- x$sampling
-    if (is.null(samp) || !"log_ratio" %in% names(samp)) {
+    lr_cols <- grep("^log_ratio", names(samp), value = TRUE)
+    if (is.null(samp) || length(lr_cols) == 0) {
       stop("No 'log_ratio' samples found.")
     }
-    lr <- samp$log_ratio
+    log_ratios <- lapply(lr_cols, function(col) samp[[col]])
+    names(log_ratios) <- sub("^log_ratio_?", "", lr_cols)
   }
 
-  med <- stats::median(lr)
-  ci  <- stats::quantile(lr, c(0.025, 0.975))
+  if (length(log_ratios) > 1) {
+    old_par <- par(mfrow = c(1, length(log_ratios)))
+    on.exit(par(old_par))
+  }
 
-  
-  d <- stats::density(lr)
-  plot(d, main = "Posterior of log-ratio",
-    xlab = "LogAV", ylab = "Posterior density")
-    abline(v = med, lty = 2)
-    abline(v = ci, lty = 3)
-    legend("topright",
-        legend = c(paste0("median = ", round(med, 3)),
-                    paste0("95% CI [", round(ci[1], 3), ", ", round(ci[2], 3), "]")),
-        lty = c(2, 3), bty = "n")
+  for (k in names(log_ratios)) {
+    lr  <- log_ratios[[k]]
+    med <- stats::median(lr)
+    ci  <- stats::quantile(lr, c(0.025, 0.975))
+
+    d <- stats::density(lr)
+    plot(d, main = if (length(log_ratios) > 1) paste("Posterior of log-ratio:", k) else "Posterior of log-ratio",
+      xlab = "LogAV", ylab = "Posterior density")
+      abline(v = med, lty = 2)
+      abline(v = ci, lty = 3)
+      legend("topright",
+          legend = c(paste0("median = ", round(med, 3)),
+                      paste0("95% CI [", round(ci[1], 3), ", ", round(ci[2], 3), "]")),
+          lty = c(2, 3), bty = "n")
+  }
 
   invisible(NULL)
+}
+
+
+# Grouping variable and covariance matrix of each gr() term in a formula, as "group:cov"
+#' @noRd
+find_gr_terms <- function(expr) {
+  if (!is.call(expr)) return(NULL)
+  if (identical(expr[[1]], as.name("gr"))) {
+    args <- as.list(expr)[-1]
+    arg_names <- if (is.null(names(args))) rep("", length(args)) else names(args)
+    group <- if (any(arg_names == "")) paste(deparse(args[arg_names == ""][[1]]), collapse = "") else ""
+    cov <- if ("cov" %in% arg_names) paste(deparse(args[["cov"]]), collapse = "") else ""
+    return(paste0(group, ":", cov))
+  }
+  unlist(lapply(as.list(expr)[-1], find_gr_terms))
+}
+
+# Random-effect coefficients estimated for both pop and ind, from the names of the posterior draws
+#' @noRd
+shared_coefficients <- function(draw_names) {
+  intersect(sub("^sd_pop__", "", grep("^sd_pop__", draw_names, value = TRUE)),
+            sub("^sd_ind__", "", grep("^sd_ind__", draw_names, value = TRUE)))
 }

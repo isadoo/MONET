@@ -7,7 +7,7 @@
 monet(Theta.P, M, trait_dataframe, column_individual = "id", column_trait = "trait",
             column_population = "population", column_se = NULL, formula_covariates = NULL,
             iter = 5000, warmup = 2000, thin = 2, save_full_model = FALSE,
-            standardize_trait = NULL, ...)
+            standardize_trait = NULL, formula = NULL, ...)
 }
 \arguments{
 \item{Theta.P}{A square matrix representing the coancestry matrix between populations.
@@ -29,7 +29,8 @@ The first column should be individual IDs, and the second column should be trait
 If provided, the function will incorporate measurement error in the model.}
 
 \item{formula_covariates}{A character string specifying additional covariates to include in the model.
-For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).}
+For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).
+Use either formula_covariates or formula.}
 
 \item{iter}{Number of MCMC iterations per chain. Default is 5000.}
 
@@ -44,12 +45,20 @@ If FALSE (default), only minimal posterior samples (fixed effects, variance comp
 If NULL (default), standardization is applied automatically when the trait range exceeds 10 units.
 Set to TRUE to force standardization or FALSE to skip it.}
 
+\item{formula}{Optional. A full model formula that replaces the default one: a formula, a character
+string or a \code{brms::bf()} formula (for example with \code{sigma ~ sex}). The response must be
+\code{Y} (the trait in column_trait), and the formula must keep a population effect with Theta.P,
+\code{gr(pop, cov = two.Theta.P)}, and an individual effect with M, \code{gr(ind, cov = M)};
+otherwise monet() stops. Other variables must be columns of trait_dataframe. With column_se, write
+the measurement error in the response, e.g. \code{Y | se(Y_se, sigma = TRUE) ~ ...}.
+Default is NULL: \code{Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))}.}
+
 \item{...}{Additional arguments passed to the brms function.}
 }
 \value{
 A monet type object containing:
-\item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (var_pop, var_ind), and log_ratio.}
-\item{log_ratio}{A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95\% credible interval bounds).}
+\item{sampling}{Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, the standard deviations and correlations of the pop and ind random effects, variance components (V_AB, V_AW), and log_ratio. When the log ratio is computed for several coefficients, V_AB, V_AW and log_ratio are suffixed with the coefficient (e.g. log_ratio_sexF).}
+\item{log_ratio}{A data frame with one row per random-effect coefficient present in both the pop and the ind terms (Intercept for the default formula; e.g. sexF and sexM for \code{(0 + sex | ...)}) and the columns: coefficient, p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95\% credible interval bounds). NULL if no coefficient is shared.}
 \item{hypothesis}{Results from brms hypothesis test comparing population vs individual variance.}
 \item{trait_name}{Name of the trait column analyzed.}
 \item{formula_used}{The model formula used in the analysis.}
@@ -63,6 +72,12 @@ this function estimates the log ratio of ancestral variances using a Bayesian mi
 This function standardizes trait data, constructs a Bayesian mixed-effects model
 using \code{brms}, and estimates ancestral variances. The function assumes no crosses between populations
 and analyzes one trait at a time.
+
+With \code{formula}, any brms model can be fitted as long as it keeps the Theta.P and M terms. For
+example, sex-specific variances:
+\code{brms::bf(Y ~ sex * habitat + (0 + sex | gr(pop, cov = two.Theta.P)) + (0 + sex | gr(ind, cov = M)), sigma ~ sex)}
+gives one log ratio for each sex. Quantities that combine coefficients, such as the log ratio for
+sexual dimorphism, can be computed from the returned standard deviations and correlations.
 }
 \references{
 \itemize{
