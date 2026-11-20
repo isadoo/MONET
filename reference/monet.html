@@ -65,7 +65,7 @@ this function estimates the log ratio of ancestral variances using a Bayesian mi
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">monet</span><span class="op">(</span><span class="va">Theta.P</span>, <span class="va">M</span>, <span class="va">trait_dataframe</span>, column_individual <span class="op">=</span> <span class="st">"id"</span>, column_trait <span class="op">=</span> <span class="st">"trait"</span>,</span>
 <span>            column_population <span class="op">=</span> <span class="st">"population"</span>, column_se <span class="op">=</span> <span class="cn">NULL</span>, formula_covariates <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>            iter <span class="op">=</span> <span class="fl">5000</span>, warmup <span class="op">=</span> <span class="fl">2000</span>, thin <span class="op">=</span> <span class="fl">2</span>, save_full_model <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>            standardize_trait <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span>            standardize_trait <span class="op">=</span> <span class="cn">NULL</span>, formula <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -106,7 +106,8 @@ If provided, the function will incorporate measurement error in the model.</p></
 
 <dt id="arg-formula-covariates">formula_covariates<a class="anchor" aria-label="anchor" href="#arg-formula-covariates"></a></dt>
 <dd><p>A character string specifying additional covariates to include in the model.
-For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).</p></dd>
+For example, "age + sex" would add age and sex as fixed effects. Default is NULL (no covariates).
+Use either formula_covariates or formula.</p></dd>
 
 
 <dt id="arg-iter">iter<a class="anchor" aria-label="anchor" href="#arg-iter"></a></dt>
@@ -132,6 +133,16 @@ If NULL (default), standardization is applied automatically when the trait range
 Set to TRUE to force standardization or FALSE to skip it.</p></dd>
 
 
+<dt id="arg-formula">formula<a class="anchor" aria-label="anchor" href="#arg-formula"></a></dt>
+<dd><p>Optional. A full model formula that replaces the default one: a formula, a character
+string or a <code><a href="https://paulbuerkner.com/brms/reference/brmsformula.html" class="external-link">brms::bf()</a></code> formula (for example with <code>sigma ~ sex</code>). The response must be
+<code>Y</code> (the trait in column_trait), and the formula must keep a population effect with Theta.P,
+<code>gr(pop, cov = two.Theta.P)</code>, and an individual effect with M, <code>gr(ind, cov = M)</code>;
+otherwise monet() stops. Other variables must be columns of trait_dataframe. With column_se, write
+the measurement error in the response, e.g. <code>Y | se(Y_se, sigma = TRUE) ~ ...</code>.
+Default is NULL: <code>Y ~ 1 + (1 | gr(pop, cov = two.Theta.P)) + (1 | gr(ind, cov = M))</code>.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Additional arguments passed to the brms function.</p></dd>
 
@@ -140,10 +151,10 @@ Set to TRUE to force standardization or FALSE to skip it.</p></dd>
     <h2>Value</h2>
     <p>A monet type object containing:</p>
 <dl><dt>sampling</dt>
-<dd><p>Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, variance components (var_pop, var_ind), and log_ratio.</p></dd>
+<dd><p>Either the full brms model object (if save_full_model = TRUE) or a data frame with minimal posterior samples including fixed effects, the standard deviations and correlations of the pop and ind random effects, variance components (V_AB, V_AW), and log_ratio. When the log ratio is computed for several coefficients, V_AB, V_AW and log_ratio are suffixed with the coefficient (e.g. log_ratio_sexF).</p></dd>
 
 <dt>log_ratio</dt>
-<dd><p>A list containing: p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds).</p></dd>
+<dd><p>A data frame with one row per random-effect coefficient present in both the pop and the ind terms (Intercept for the default formula; e.g. sexF and sexM for <code>(0 + sex | ...)</code>) and the columns: coefficient, p_value (two-tailed test that log-ratio differs from 0), mean (mean of log-ratio posterior), median (median of log-ratio posterior), ci_lower and ci_upper (95% credible interval bounds). NULL if no coefficient is shared.</p></dd>
 
 <dt>hypothesis</dt>
 <dd><p>Results from brms hypothesis test comparing population vs individual variance.</p></dd>
@@ -163,6 +174,11 @@ Set to TRUE to force standardization or FALSE to skip it.</p></dd>
     <p>This function standardizes trait data, constructs a Bayesian mixed-effects model
 using <code>brms</code>, and estimates ancestral variances. The function assumes no crosses between populations
 and analyzes one trait at a time.</p>
+<p>With <code>formula</code>, any brms model can be fitted as long as it keeps the Theta.P and M terms. For
+example, sex-specific variances:
+<code>brms::bf(Y ~ sex * habitat + (0 + sex | gr(pop, cov = two.Theta.P)) + (0 + sex | gr(ind, cov = M)), sigma ~ sex)</code>
+gives one log ratio for each sex. Quantities that combine coefficients, such as the log ratio for
+sexual dimorphism, can be computed from the returned standard deviations and correlations.</p>
     </div>
     <div id="references">
     <h2>References</h2>
